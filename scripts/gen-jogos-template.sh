@@ -14,8 +14,16 @@ cat <<'EOF'
 ==========================================================================
 
 Coloque os jogos (ROMs) na pasta do sistema correspondente, dentro de "roms".
-Ao ligar o aparelho, as listas do RetroArch são atualizadas sozinhas e os
-jogos aparecem no menu, cada sistema com o emulador (core) certo.
+As listas do RetroArch são atualizadas sozinhas e os jogos aparecem no menu,
+cada sistema com o emulador (core) certo.
+
+Pela rede, sem tirar o cartão (aparelho ligado, com cabo de rede ou Wi-Fi):
+  no PC, abra  \\STV2000\JOGOS  (ou \\<IP do aparelho>\JOGOS), sem senha.
+  O Windows 11 24H2 ou mais novo bloqueia pasta sem senha. Rode uma vez no
+  PowerShell do PC:  cmdkey /add:STV2000 /user:gamer /pass:retro
+
+Usuário e senha do sistema (SSH/SFTP): gamer / retro (troque com "passwd").
+O menu de jogos e a pasta na rede não pedem senha.
 
   roms\         jogos, uma pasta por sistema (tabela abaixo)
   bios\         arquivos de BIOS exigidos por alguns sistemas

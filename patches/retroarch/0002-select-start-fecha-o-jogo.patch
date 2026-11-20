@@ -1,0 +1,35 @@
+diff --git a/runloop.c b/runloop.c
+index 679517b..13676eb 100644
+--- a/runloop.c
++++ b/runloop.c
+@@ -5885,14 +5885,22 @@ static enum runloop_state_enum runloop_check_state(
+       static bool runloop_exec = false;
+       quit_key                 = BIT256_GET(current_bits, RARCH_QUIT_KEY);
+       trig_quit_key            = quit_key && !old_quit_key;
+-      /* Check for quit gamepad combo */
+-      if (    !trig_quit_key
+-          && ((quit_gamepad_combo != INPUT_COMBO_NONE)
+-          && input_driver_button_combo(
+-             quit_gamepad_combo,
+-             current_time,
+-             &current_bits)))
+-        trig_quit_key = true;
++      /* STV-2000: a combinação "sair" do controle (Select+Start) fecha o jogo e volta
++       * ao menu, como no Batocera/RetroPie. Sem jogo aberto não faz nada: fechar o
++       * RetroArch desligaria o aparelho. */
++      {
++         static bool old_quit_combo = false;
++         bool quit_combo            = (quit_gamepad_combo != INPUT_COMBO_NONE)
++               && input_driver_button_combo(
++                     quit_gamepad_combo,
++                     current_time,
++                     &current_bits);
++         if (     quit_combo
++               && !old_quit_combo
++               && runloop_st->current_core_type != CORE_TYPE_DUMMY)
++            command_event(CMD_EVENT_CLOSE_CONTENT, NULL);
++         old_quit_combo             = quit_combo;
++      }
+       old_quit_key             = quit_key;
+       quit_press_twice         = settings->bools.quit_press_twice;
+ 

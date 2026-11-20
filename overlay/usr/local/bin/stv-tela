@@ -1,0 +1,29 @@
+#!/bin/sh
+# Mostra uma tela cheia na TV pelo framebuffer, no lugar do texto do console.
+# Uso: stv-tela iniciando|desligando|reiniciando|sem-jogos
+# As imagens (PPM 1280x720) são geradas no build por scripts/gen-fundos.py.
+#   STV_TELA_ESPERA=N  espera até N segundos o /dev/fb0 aparecer (driver de vídeo)
+img="/usr/share/stv2000/telas/$1.ppm"
+[ -f "$img" ] || exit 0
+
+i=0
+while [ ! -e /dev/fb0 ] && [ "$i" -lt "${STV_TELA_ESPERA:-0}" ]; do sleep 1; i=$((i + 1)); done
+[ -w /dev/fb0 ] || exit 0
+
+fbcon_ativo() {
+    for v in /sys/class/vtconsole/vtcon*; do
+        grep -q 'frame buffer' "$v/name" 2>/dev/null && [ "$(cat "$v/bind" 2>/dev/null)" = 1 ] && return 0
+    done
+    return 1
+}
+
+# Limpar o tty1 (e esconder o cursor) faz o console de vídeo assumir a tela e ligar a
+# saída HDMI, caso ainda não tenha ligado. Ele faz isso logo depois, em segundo plano:
+# espera terminar, senão apagaria a imagem.
+if [ -w /dev/tty1 ]; then
+    printf '\033[?25l\033[H\033[2J' > /dev/tty1
+    i=0
+    while ! fbcon_ativo && [ "$i" -lt 30 ]; do sleep 0.1; i=$((i + 1)); done
+    printf '\033[?25l\033[H\033[2J' > /dev/tty1
+fi
+exec fbsplash -s "$img" -d /dev/fb0

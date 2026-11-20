@@ -10,7 +10,9 @@ apt-get install -y --no-install-recommends \
     python3-dev python3-setuptools python3-pyelftools python3-pil swig \
     device-tree-compiler u-boot-tools \
     dosfstools e2fsprogs fdisk mtools \
-    git wget curl xz-utils ca-certificates rsync file cpio
+    git wget curl xz-utils ca-certificates rsync file cpio \
+    smbclient
+# (smbclient: só para o teste do compartilhamento de rede no QEMU)
 
 # Garante que o binfmt do aarch64 está registrado (necessário para o chroot).
 if [ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then

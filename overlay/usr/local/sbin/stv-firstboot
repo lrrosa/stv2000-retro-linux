@@ -1,10 +1,13 @@
 #!/bin/sh
-# 1º boot: expande a partição JOGOS (FAT32, partição 3) até o fim do cartão SD
-# e recria a estrutura de pastas. Só faz isso se ela ainda estiver vazia
-# (apenas o modelo de pastas); se você já copiou jogos, ela é mantida como está.
+# 1º boot: expande a partição JOGOS (FAT32, partição 3) até o fim do cartão SD.
+# O que já estiver nela (jogos, wifi.txt... copiados no PC antes do 1º boot) é guardado
+# na partição do sistema, e volta depois da formatação. Até o 1º boot a JOGOS tem só
+# ~128 MB, então sempre cabe. Para repetir num cartão que não foi expandido:
+#   doas touch /etc/stv2000/firstboot && doas reboot
 MARK=/etc/stv2000/firstboot
 MNT=/media/jogos
 TEMPLATE=/usr/share/stv2000/jogos-template
+BAK=/var/lib/stv-firstboot-jogos     # no ext4: sobrevive ao reboot do meio do processo
 log() { echo "stv-firstboot: $*"; logger -t stv-firstboot "$*" 2>/dev/null; }
 fim() { rm -f "$MARK"; exit 0; }
 
@@ -15,47 +18,58 @@ part=$(cat "/sys/class/block/$name/partition" 2>/dev/null)
 disk=$(basename "$(readlink -f "/sys/class/block/$name/..")")
 [ "$part" = 3 ] || { log "JOGOS ($dev) não é a partição 3; nada a fazer"; fim; }
 
-# O wifi.txt pode ter sido preenchido no PC antes do 1º boot: guarda para devolver.
-WIFI_BAK=/run/stv-firstboot-wifi.txt
-if mountpoint -q "$MNT" && [ -f "$MNT/wifi.txt" ] && ! cmp -s "$MNT/wifi.txt" "$TEMPLATE/wifi.txt"; then
-    cp "$MNT/wifi.txt" "$WIFI_BAK"
-fi
-
 formatar() {
     umount "$MNT" 2>/dev/null
-    mkfs.vfat -F 32 -n JOGOS "$dev" >/dev/null || { log "mkfs.vfat falhou"; fim; }
-    mount "$MNT" && cp -r "$TEMPLATE/." "$MNT/" || { log "falha ao montar/copiar JOGOS"; fim; }
-    if [ -f "$WIFI_BAK" ]; then cp "$WIFI_BAK" "$MNT/wifi.txt"; rm -f "$WIFI_BAK"; fi
+    mkfs.vfat -F 32 -n JOGOS "$dev" >/dev/null || { log "mkfs.vfat falhou (arquivos guardados em $BAK)"; fim; }
+    mount "$MNT" && cp -r "$TEMPLATE/." "$MNT/" || { log "falha ao montar/copiar JOGOS (arquivos guardados em $BAK)"; fim; }
+    if [ -d "$BAK" ]; then
+        if cp -r "$BAK/." "$MNT/"; then
+            rm -rf "$BAK"
+        else
+            log "falha ao devolver os arquivos; eles continuam em $BAK"
+        fi
+    fi
     sync
     log "partição JOGOS pronta: $(df -h "$MNT" | awk 'NR==2{print $2}')"
     fim
 }
 
-# Já foi expandida antes de um reboot? Só falta formatar.
+# Já foi expandida antes de um reboot? Só falta formatar (o backup já está em $BAK).
 if [ "$(cat "$MARK")" = "formatar" ]; then formatar; fi
-
-# O usuário já colocou arquivos? Então não mexe.
-if mountpoint -q "$MNT"; then
-    extra=$(cd "$MNT" && find . -type f ! -name '*LEIA-ME*' ! -name '.stv-*' ! -name 'wifi.txt' | head -n 1)
-    if [ -n "$extra" ]; then
-        log "JOGOS já tem arquivos ($extra); mantendo o tamanho atual"
-        fim
-    fi
-fi
 
 total=$(cat "/sys/class/block/$disk/size")
 start=$(cat "/sys/class/block/$name/start")
 size=$(cat "/sys/class/block/$name/size")
 livre=$((total - start - size))
 if [ "$livre" -lt 204800 ]; then   # < 100 MB livres depois dela
-    log "não há espaço livre no cartão para expandir"
+    log "a partição JOGOS já ocupa o cartão todo"
     fim
+fi
+
+# Guarda o conteúdo atual (menos a pasta que o Windows cria sozinho). Sem espaço para
+# o backup, não mexe: melhor uma partição pequena do que perder arquivos.
+rm -rf "$BAK"
+if mountpoint -q "$MNT"; then
+    usado=$(du -sk "$MNT" | cut -f1)
+    livre_sis=$(df -k / | awk 'NR==2{print $4}')
+    if [ $((usado + 51200)) -gt "$livre_sis" ]; then
+        log "sem espaço no sistema para guardar os $usado KB da JOGOS; mantendo o tamanho atual"
+        fim
+    fi
+    mkdir -p "$BAK"
+    if ! cp -r "$MNT/." "$BAK/"; then
+        log "falha ao guardar os arquivos da JOGOS; mantendo o tamanho atual"
+        rm -rf "$BAK"; fim
+    fi
+    rm -rf "$BAK/System Volume Information"
+    sync
+    log "guardados $usado KB da JOGOS para devolver depois da expansão"
 fi
 
 log "expandindo $dev até o fim de /dev/$disk"
 umount "$MNT" 2>/dev/null
 echo ", +" | sfdisk --no-reread --no-tell-kernel -N 3 "/dev/$disk" >/dev/null 2>&1 \
-    || { log "sfdisk falhou"; mount "$MNT"; fim; }
+    || { log "sfdisk falhou"; mount "$MNT"; rm -rf "$BAK"; fim; }
 partx -u -n 3 "/dev/$disk" 2>/dev/null
 if [ "$(cat "/sys/class/block/$name/size")" -le "$size" ]; then
     log "o kernel não releu a tabela de partições; reiniciando para concluir"

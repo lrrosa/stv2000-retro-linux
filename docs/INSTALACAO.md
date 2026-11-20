@@ -30,9 +30,9 @@ Os dois aceitam o `.img.xz` direto, sem descompactar.
    **formatar** uma delas. É a partição do Linux (ext4): **clique em Cancelar**.
    As partições `STVBOOT` e `JOGOS` aparecem normalmente.
 
-> Dica: você já pode copiar alguns jogos para `JOGOS\roms\...` agora, mas a partição
-> só tem 128 MB até o primeiro boot. Depois do primeiro boot ela passa a ocupar o
-> cartão inteiro. **Recomendado: dar o primeiro boot antes de copiar os jogos.**
+> Dica: a partição `JOGOS` só tem 128 MB até o primeiro boot. No primeiro boot ela passa
+> a ocupar o **cartão inteiro**, e o que você já tiver copiado é mantido. Para copiar
+> muitos jogos, dê o primeiro boot antes, ou use a rede (`\\STV2000\JOGOS`).
 >
 > Sem cabo de rede? Preencha agora o `JOGOS\wifi.txt` (nome da rede e senha). Ele é
 > mantido no primeiro boot. Veja [Wi-Fi](CONFIGURACAO.md#wi-fi).
@@ -49,11 +49,18 @@ composto, conector P2 de 3,5 mm). Ele faz o carregador de fábrica executar o
 4. Solte quando aparecer o logo e a tela piscar ou apagar (5 a 10 segundos).
 5. O aparelho reinicia sozinho e liga o Linux.
 
-No primeiro boot o sistema expande a partição `JOGOS` até o fim do cartão e pode
-reiniciar mais uma vez. Em seguida o **RetroArch abre em português**.
+No primeiro boot o sistema expande a partição `JOGOS` até o fim do cartão (mantendo o
+que você já copiou) e pode reiniciar mais uma vez. Em seguida o **RetroArch abre em português**.
 
 Daqui em diante, **com o cartão** o aparelho liga o Linux e **sem o cartão** liga o
 Android. Não precisa mais do palito.
+
+Próximos passos:
+
+- **Jogos**: com o cabo de rede ligado, copie-os do PC para `\\STV2000\JOGOS`, sem
+  senha. Ou desligue e copie pelo cartão. Veja [Colocando jogos](CONFIGURACAO.md#colocando-jogos).
+- **Usuário e senha** (SSH/SFTP): **`gamer`** / **`retro`**. O menu de jogos e a pasta
+  na rede não pedem senha. Veja [Acesso](../README.md#acesso-usuário-e-senha).
 
 ## 4. Voltar ao Android
 
@@ -66,8 +73,9 @@ inofensiva sem o cartão.)
 | Sintoma | O que fazer |
 |---|---|
 | Liga o Android mesmo com o cartão | Repita o passo 3 segurando o botão por mais tempo. Confira se a gravação terminou e se o cartão tem a partição `STVBOOT`. |
-| Tela preta depois do logo | No PC, abra `STVBOOT\uEnv.txt` no Bloco de Notas e troque a linha `FDT=` pelas alternativas listadas em `STVBOOT\LEIA-ME.txt` (p281 → tx3-mini → s905x-p212). |
-| Não dá boot de jeito nenhum | Em `STVBOOT`, renomeie `u-boot.ext.alternativo` para `u-boot.ext` (carrega um U-Boot moderno). Se precisar trocar o device tree, faça isso em `extlinux\extlinux.conf`. Para desfazer, renomeie de volta. |
+| Tela preta depois do logo | Espere até 1 minuto (o 1º boot prepara o cartão). Se continuar, no PC abra `STVBOOT\extlinux\extlinux.conf` no Bloco de Notas e troque a linha `FDT` pelas alternativas listadas em `STVBOOT\LEIA-ME.txt` (p281 → tx3-mini → s905x-p212). |
+| Quer ver as mensagens do boot na TV | Em `STVBOOT\extlinux\extlinux.conf`, acrescente ` console=tty0` no fim da linha `APPEND`. |
+| Não dá boot de jeito nenhum | Em `STVBOOT`, renomeie `u-boot.ext` para `u-boot.ext.desativado`: o U-Boot de fábrica carrega o kernel direto pelo `uEnv.txt` (no STV-2000 testado esse caminho deu tela preta, mas pode servir em outras placas). Para desfazer, renomeie de volta. |
 | RetroArch abre mas sem som | Veja "Áudio" em [CONFIGURACAO.md](CONFIGURACAO.md). |
 | Quer ver o que está acontecendo | Use a serial da placa (UART, 115200 8N1, 3,3 V). Veja [HARDWARE.md](HARDWARE.md). |
 

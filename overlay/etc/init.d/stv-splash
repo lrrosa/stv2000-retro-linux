@@ -1,0 +1,16 @@
+#!/sbin/openrc-run
+# Tela de abertura na TV logo que o driver de vídeo sobe (o texto do boot vai só para a
+# serial: o kernel usa console=ttyAML0). Fica até o RetroArch abrir.
+
+description="Tela de abertura do STV-2000"
+
+depend() {
+	after udev-trigger
+	keyword -docker -lxc -prefix -vserver
+}
+
+start() {
+	# em segundo plano: o driver de vídeo (meson_drm) pode levar alguns segundos
+	STV_TELA_ESPERA=15 /usr/local/bin/stv-tela iniciando >/dev/null 2>&1 &
+	return 0
+}

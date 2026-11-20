@@ -26,14 +26,37 @@ intacto**: sem o cartão, o aparelho liga normalmente no Android.
 - **Partição `JOGOS` em FAT32**: coloque o cartão no PC e copie os jogos para a pasta do
   sistema (`roms\snes`, `roms\psx`…). No boot seguinte eles aparecem no menu, cada
   sistema já com o emulador certo.
+- **Pasta de jogos na rede, sem senha**: no PC, abra `\\STV2000\JOGOS` e copie ou apague
+  jogos sem tirar o cartão. Eles aparecem no menu em poucos segundos.
 - **Saves, states, capas e BIOS na mesma partição**, fáceis de fazer backup pelo Windows.
 - **Desligar e Reiniciar no menu principal**, como em um console. O aparelho desliga
   com segurança.
-- **Wi-Fi interno** (experimental): driver comunitário do chip SSV6051P compilado na
-  imagem. É configurado pelo arquivo `JOGOS\wifi.txt`, no Bloco de Notas.
+- **Boot limpo**: em vez do texto do Linux, a TV mostra uma tela de abertura até o menu
+  abrir (e "Desligando..." ao desligar).
+- **Select + Start sai do jogo**; segurar Start abre o menu do jogo (salvar estado etc.).
+- **Wi-Fi interno**: driver comunitário do chip SSV6051P compilado na imagem (testado no
+  aparelho, ~30–37 Mbit/s, só 2,4 GHz). É configurado pelo arquivo `JOGOS\wifi.txt`, no
+  Bloco de Notas.
 - **Não mexe no Android**: a memória interna (eMMC) não é alterada.
 - Acesso por **SSH** e atualizações com `apk upgrade`. O kernel novo é preparado
   automaticamente para o boot Amlogic.
+
+## Acesso: usuário e senha
+
+O menu de jogos não tem senha: o aparelho liga direto nele. Para acessar pela rede:
+
+| Acesso | Endereço | Usuário | Senha |
+|---|---|---|---|
+| Pasta de jogos (rede do Windows) | `\\STV2000\JOGOS` ou `\\<IP>\JOGOS` | nenhum (anônimo) | nenhuma |
+| SSH / SFTP (WinSCP, FileZilla) | `stv2000` ou o IP | **`gamer`** | **`retro`** |
+| Administração por SSH (`doas`) | | `gamer` | a mesma do `gamer` |
+
+- O `root` fica bloqueado; use `doas` (ex.: `doas apk add htop`).
+- **Troque a senha** depois do primeiro acesso por SSH: `passwd`.
+- **Windows 11 24H2 ou mais novo** bloqueia pastas anônimas. Rode uma vez no PowerShell
+  do PC `cmdkey /add:STV2000 /user:gamer /pass:retro` e a pasta abre direto. Veja
+  [Pasta de jogos pela rede](docs/CONFIGURACAO.md#pasta-de-jogos-pela-rede-smb).
+- O IP aparece no roteador ou no menu: *Menu principal → Informações → Rede*.
 
 ## Como é a interface
 
@@ -43,7 +66,7 @@ intacto**: sem o cartão, o aparelho liga normalmente no Android.
                                                      ← → escolhe o sistema    ├ Chrono Trigger (USA)            ┌─────────┐
                                                      ↑ ↓ escolhe o jogo       ├ Donkey Kong Country (USA)       │  capa   │
                                                      OK  joga                 ├ Super Mario World (USA)  ◄──    │         │
-                                                     Start+Select: menu       └ ...                             └─────────┘
+                                                     Select+Start: sai        └ ...                             └─────────┘
 ```
 
 É o menu XMB do RetroArch, o mesmo do [Lakka](https://www.lakka.tv). Batocera, EmuELEC e
@@ -57,6 +80,8 @@ próprio emulador, sem carregar um segundo programa na memória de 1 GB.
 | Menu principal: ícones coloridos e fundo com tema de jogos | Aba de um sistema: os jogos com o fundo do console |
 | ![Menu do jogo](docs/telas/menu-do-jogo.png) | ![Favoritos](docs/telas/favoritos.png) |
 | Menu do jogo: Executar, favoritos, informações | Favoritos e Histórico têm fundos próprios |
+| ![Tela de abertura](docs/telas/abertura.png) | ![Sem jogos](docs/telas/sem-jogos.png) |
+| Tela de abertura no boot, sem o texto do Linux | Sem nenhum jogo: como copiar pela rede ou pelo cartão |
 
 *Telas do teste no QEMU, com jogos fictícios; no aparelho, a GPU desenha o mesmo menu.*
 
@@ -94,17 +119,18 @@ O S905W tem 4 núcleos Cortex-A53 de até 1,2 GHz e GPU Mali-450, que só faz Op
 
 - [Instalação](docs/INSTALACAO.md): gravar o cartão, primeiro boot ("palito" no conector
   AV) e como voltar ao Android.
-- [Configuração e uso](docs/CONFIGURACAO.md): jogos, BIOS, controles, áudio, rede/SSH,
-  senhas, atualizações e Wi-Fi.
+- [Configuração e uso](docs/CONFIGURACAO.md): jogos, BIOS, controles, áudio, pasta de
+  jogos na rede, SSH, senhas, atualizações e Wi-Fi.
 - [Hardware](docs/HARDWARE.md): componentes da placa, cadeia de boot e serial (UART).
 - [Compilar a imagem](docs/COMPILAR.md): build completo no Windows com WSL2.
 
 ## Limitações conhecidas
 
-- **Wi-Fi interno (iComm SSV6051P) experimental**: o chip não tem driver no kernel
-  oficial. A imagem usa um driver da comunidade, ainda não testado neste aparelho, só
-  2,4 GHz e lento (~10 Mbit/s). O cabo de rede (10/100) é a opção mais estável. A rede
-  só é necessária para SSH, atualizações e baixar capas de jogos.
+- **Wi-Fi interno (iComm SSV6051P)**: o chip não tem driver no kernel oficial. A imagem
+  usa um driver da comunidade (e um módulo de relógio, `clk-pwm`, que o kernel do Alpine
+  não habilita). No teste neste aparelho conectou sozinho e chegou a ~30–37 Mbit/s (só
+  2,4 GHz). O cabo de rede (10/100) tem menor latência. A rede é usada para SSH,
+  atualizações, capas de jogos e a pasta de jogos na rede.
 - O kernel fica fixo na versão da imagem (por causa do driver do Wi-Fi). Para um
   kernel novo, grave uma imagem nova.
 - O controle remoto infravermelho não é usado; use controle/teclado USB.
@@ -125,10 +151,12 @@ Alpine Linux 3.24 + a lean RetroArch build (KMS/GLES2 on the Mali-450 *lima* dri
 X11) for the Brazilian **Aquário STV-2000** Android TV box (Amlogic S905W, 1 GB RAM,
 p281 reference board). It boots from microSD through the stock Amlogic U-Boot
 (`aml_autoscript`/`s905_autoscript`, toothpick method), leaving Android untouched. A FAT32
-`JOGOS` partition holds ROMs, BIOS and saves, and RetroArch playlists are generated
-automatically from it at boot. The UI is a Lakka-style XMB setup: one tab per system
+`JOGOS` partition holds ROMs, BIOS and saves. It is also shared on the LAN as
+`\\STV2000\JOGOS` (Samba, guest access), and RetroArch playlists are regenerated
+automatically when it changes. SSH login: `gamer` / `retro`. The UI is a Lakka-style XMB setup: one tab per system
 with its own icon and wallpaper, on-demand box art, favorites/history, trimmed menus and
-Shutdown/Reboot entries (small RetroArch patch). The internal SSV6051P Wi-Fi uses an
-experimental out-of-tree community driver (eloirotava/6051), configured from
-`JOGOS\wifi.txt`. Status: **work in progress, not yet tested on real hardware**. Build instructions
+Shutdown/Reboot entries (small RetroArch patch). The internal SSV6051P Wi-Fi works
+through an out-of-tree community driver (eloirotava/6051) plus an out-of-tree `clk-pwm`
+clock module (Alpine's kernel ships it disabled); it is 2.4 GHz only and reached
+~30–37 Mbit/s on the device, configured from `JOGOS\wifi.txt`. Status: **work in progress, not yet tested on real hardware**. Build instructions
 are in [docs/COMPILAR.md](docs/COMPILAR.md) (WSL2/Ubuntu, qemu-user).

@@ -11,7 +11,8 @@ Alpine podem ser obtidos, com fontes, em <https://pkgs.alpinelinux.org> e
 | Alpine Linux 3.24 (pacotes) | pacotes oficiais | várias (cada pacote) |
 | Linux 6.18 LTS (`linux-lts`) | pacote Alpine | GPL-2.0 |
 | Mesa (driver lima) | pacote Alpine | MIT |
-| U-Boot (u-boot.ext alternativo) | <https://github.com/u-boot/u-boot>, compilado | GPL-2.0+ |
+| Samba (compartilhamento `\\STV2000\JOGOS`) | pacote Alpine | GPL-3.0 |
+| U-Boot (u-boot.ext) | <https://github.com/u-boot/u-boot>, compilado | GPL-2.0+ |
 | RetroArch 1.22.2 | <https://github.com/libretro/RetroArch>, compilado com o patch em `patches/retroarch` | GPL-3.0 |
 | Driver Wi-Fi SSV6051P (`ssv6051.ko`) | <https://github.com/eloirotava/6051> (código da iComm/South Silicon Valley, portado pela comunidade), compilado | GPL-3.0 ou posterior (cabeçalhos dos fontes) |
 | Firmware `ssv6051-sw.bin` e `ssv6051-wifi.cfg` | mesmo repositório (firmware do fabricante, também distribuído pelo Armbian) | do fabricante, redistribuído como está |

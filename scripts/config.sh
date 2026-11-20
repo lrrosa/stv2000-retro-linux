@@ -40,4 +40,8 @@ BOOT_MB=256          # FAT32 de boot
 ROOT_FREE_MB=1536    # espaço livre extra no ext4 do sistema
 JOGOS_MB=128         # FAT32 de jogos inicial (expande no 1º boot)
 
-KERNEL_CMDLINE="root=LABEL=$LABEL_ROOT rootfstype=ext4 rootwait rw console=ttyAML0,115200n8 console=tty0 consoleblank=0 quiet loglevel=3"
+# Boot sem texto na TV: mensagens do kernel e do OpenRC só na serial (ttyAML0); a TV
+# mostra a tela de abertura (stv-splash). Para ver o texto do boot na TV, acrescente
+# "console=tty0" no fim da linha APPEND do extlinux.conf (e tire "quiet").
+# video=: 720p desde o boot, o mesmo modo do RetroArch (a TV não troca de modo no meio).
+KERNEL_CMDLINE="root=LABEL=$LABEL_ROOT rootfstype=ext4 rootwait rw console=ttyAML0,115200n8 consoleblank=0 quiet loglevel=3 vt.global_cursor_default=0 video=HDMI-A-1:1280x720@60"

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Compila o U-Boot mainline (placa de referência p212, mesma família GXL do S905W)
-# para ser carregado em cadeia pelo U-Boot de fábrica (u-boot.ext). É a alternativa
-# caso o boot direto pelo U-Boot antigo não funcione. Gera $ART/u-boot.ext
+# para ser carregado em cadeia pelo U-Boot de fábrica (u-boot.ext). É o caminho de boot
+# padrão: no STV-2000 o boot direto pelo U-Boot antigo dá tela preta. Gera $ART/u-boot.ext
 set -euo pipefail
 source "$(dirname "$0")/config.sh"
 source "$(dirname "$0")/lib.sh"

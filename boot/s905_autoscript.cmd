@@ -1,6 +1,6 @@
 echo "STV-2000: iniciando Alpine Linux"
-if fatload mmc 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
-if fatload usb 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
+if fatload mmc 0 0x1000000 u-boot.ext; then osd clear; osd close; go 0x1000000; fi;
+if fatload usb 0 0x1000000 u-boot.ext; then osd clear; osd close; go 0x1000000; fi;
 setenv kernel_addr_r 0x11000000
 setenv ramdisk_addr_r 0x18000000
 setenv fdt_addr_r 0x10e00000

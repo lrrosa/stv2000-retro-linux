@@ -9,7 +9,7 @@ etiqueta "1G+8G", Android 7.1). Unidades de outros lotes podem ter peças difere
 | GPU | Mali-450 MP3 | sim, driver **lima** (OpenGL ES 2.0) |
 | RAM | 1 GB DDR3 (4× Samsung 2 Gb, dois em cada face) | — |
 | eMMC | Samsung KLM8G1WEMB-B031, 8 GB (Android) | não é usado por este projeto |
-| Wi-Fi | iComm **SSV6051P** (SDIO, no `sd_emmc_a`) | experimental: driver comunitário fora da árvore ([eloirotava/6051](https://github.com/eloirotava/6051)), só 2,4 GHz |
+| Wi-Fi | iComm **SSV6051P** (SDIO, no `sd_emmc_a`) | driver comunitário fora da árvore ([eloirotava/6051](https://github.com/eloirotava/6051)) + módulo `clk-pwm`; testado no aparelho (~30–37 Mbit/s, só 2,4 GHz) |
 | Ethernet | 10/100, PHY interno do SoC (transformador QX B1601SH) | sim |
 | USB | hub Moai MA8601 → 4× USB 2.0 | sim |
 | Vídeo | HDMI e AV (composto) | sim (HDMI testado como padrão) |
@@ -39,9 +39,11 @@ ROM do SoC → U-Boot de fábrica (eMMC)
    └─ 1ª vez, com o botão do AV: aml_autoscript (do cartão)
         → grava no ambiente: bootcmd = "procura s905_autoscript no SD/USB; senão Android"
    └─ boots seguintes: s905_autoscript (do cartão)
-        ├─ se existir u-boot.ext → carrega o U-Boot mainline → extlinux/extlinux.conf
-        └─ senão lê uEnv.txt → carrega Image (0x11000000), uInitrd (0x18000000),
-           device tree (0x10e00000) → booti
+        ├─ padrão: desliga a camada OSD (some o logo/lixo na tela) e carrega o
+        │  u-boot.ext (U-Boot mainline p212) → extlinux/extlinux.conf → booti
+        │  (único caminho que funcionou no STV-2000 testado, com o DTB p281)
+        └─ sem u-boot.ext: lê uEnv.txt → carrega Image (0x11000000), uInitrd
+           (0x18000000), device tree (0x10e00000) → booti  (deu tela preta no teste)
               → kernel Alpine linux-lts → initramfs → root=LABEL=STVROOT
 ```
 
@@ -65,4 +67,23 @@ Observações:
 | 3 | `JOGOS` | FAT32 | o resto do cartão | roms, bios, saves, states, screenshots, thumbnails |
 
 A partição 1 começa em 16 MiB. A 3 é criada com 128 MB e, no primeiro boot, o
-`stv-firstboot` a expande até o fim do cartão, se ainda estiver vazia.
+`stv-firstboot` a expande até o fim do cartão. O que já estiver nela é guardado na
+partição do sistema e devolvido depois da formatação.
+
+## Wi-Fi: o relógio `clk-pwm`
+
+O chip SSV6051P fica no barramento SDIO `sd_emmc_a` (`d0070000.mmc`). No device tree da
+p281 esse controlador depende de um `mmc-pwrseq-simple` (`sdio-pwrseq`, reset no
+`GPIOX_6`), que por sua vez precisa de um relógio de 32768 Hz (`wifi32k`, `compatible =
+"pwm-clock"`, gerado pelo `PWM_E`). O kernel do Alpine vem com
+`# CONFIG_COMMON_CLK_PWM is not set`, então esse relógio nunca sobe: o `pwrseq` fica em
+*deferred probe* ("external clock not ready"), o controlador SDIO não é registrado e o
+chip não aparece no barramento.
+
+A imagem resolve isso compilando o `clk-pwm.ko` fora da árvore (fonte do próprio
+kernel.org, mesma versão do kernel da imagem) e instalando-o no rootfs. Ele é carregado
+pelo device tree (alias `pwm-clock`) e, por garantia, o `stv-wifi` também faz
+`modprobe clk-pwm` antes de subir a rede. Assim que o relógio aparece, o *deferred probe*
+do SDIO conclui, o `ssv6051` detecta o chip (`device id: 3030:3030`) e a `wlan0` surge.
+No teste neste aparelho o sinal ficou em -26 dBm (roteador perto) e a cópia de arquivos
+por cima do SSH alcançou ~30–37 Mbit/s.

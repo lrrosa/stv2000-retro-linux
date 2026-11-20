@@ -50,6 +50,11 @@ network={
 EOF
     )
 
+    # O controlador SDIO do Wi-Fi depende do relógio "wifi32k" (clk-pwm), que o kernel do
+    # Alpine não habilita. O udev costuma carregar o módulo sozinho pelo device tree
+    # (compatible "pwm-clock"); isto garante a carga mesmo se o alias falhar — o probe
+    # adiado do controlador SDIO sobe o barramento assim que o relógio aparece.
+    modprobe -q clk-pwm 2>/dev/null
     # o driver do SSV6051P leva alguns segundos para carregar o firmware
     [ -d "/sys/class/net/$IF" ] || modprobe -q ssv6051 2>/dev/null
     i=0

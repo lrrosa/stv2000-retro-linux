@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Gera os fundos de tela do menu para as abas que não são de um sistema.
+"""Gera os fundos de tela do menu para as abas que não são de um sistema, e as telas
+cheias de abertura/desligamento.
 
 O XMB procura <pasta de fundos>/<título da aba>.png ("Menu principal", "Configurações",
 "Histórico", "Favoritos"). Cada fundo é um degradê colorido com silhuetas de controles
 e videogames espalhadas, ao estilo "papel de parede gamer". As silhuetas vêm dos ícones
 monocromáticos do retroarch-assets (CC-BY 4.0), então o resultado é uma obra derivada
-deles (créditos em CREDITOS.md).
+deles (créditos em CREDITOS.md). As telas (PPM, para o fbsplash) usam o fundo do Menu
+principal e as fontes do retroarch-assets.
 
-Uso: gen-fundos.py <pasta de ícones xmb/monochrome/png> <pasta de saída>
+Uso: gen-fundos.py <pasta assets do RetroArch> <saída dos fundos> [<saída das telas>]
 Requer python3 com Pillow (pacote python3-pil no Ubuntu).
 """
 import os
@@ -127,11 +129,76 @@ def vinheta():
     return preto
 
 
-def main():
-    if len(sys.argv) != 3:
-        sys.exit(__doc__)
-    icones, saida = sys.argv[1], sys.argv[2]
+# Telas cheias mostradas pelo framebuffer fora do RetroArch (stv-tela): no boot, ao
+# desligar/reiniciar e quando não há jogos. nome -> (título, tamanho, subtítulo, linhas, rodapé)
+TELAS = {
+    "iniciando": ("STV-2000", 150, "Retro Linux", [], "Carregando..."),
+    "desligando": ("Desligando...", 96, "Aguarde a tela apagar para tirar o aparelho da tomada.", [], ""),
+    "reiniciando": ("Reiniciando...", 96, "Só um instante.", [], ""),
+    "sem-jogos": ("Nenhum jogo encontrado", 72, "", [
+        "Copie cada jogo para a pasta do sistema, em JOGOS\\roms",
+        "(ex.: roms\\snes, roms\\megadrive, roms\\psx). Veja o LEIA-ME.txt.",
+        "",
+        "•  Pela rede: no computador, abra  \\\\STV2000\\JOGOS",
+        "    Os jogos aparecem no menu sozinhos, em poucos segundos.",
+        "•  Pelo cartão: no Menu principal, escolha Desligar, tire o cartão",
+        "    e coloque no computador (unidade JOGOS). Depois, ligue de novo.",
+    ], "O menu abre em alguns segundos..."),
+}
+
+
+def fonte(assets, nome, tam):
+    from PIL import ImageFont
+    return ImageFont.truetype(os.path.join(assets, nome), tam)
+
+
+def texto(img, xy, s, f, cor=(255, 255, 255), centro=True):
+    """Texto com sombra; centralizado horizontalmente em xy[0] se centro=True."""
+    d = ImageDraw.Draw(img)
+    x, y = xy
+    if centro:
+        x -= d.textlength(s, font=f) / 2
+    sombra = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sombra).text((x + 3, y + 4), s, font=f, fill=(0, 0, 0, 170))
+    img.alpha_composite(sombra.filter(ImageFilter.GaussianBlur(3)))
+    d.text((x, y), s, font=f, fill=cor + (255,))
+
+
+def telas(assets, fundo, saida):
     os.makedirs(saida, exist_ok=True)
+    negrito, normal = "fonts/TitilliumWeb-Bold.ttf", "fonts/OpenSans-Regular.ttf"
+    for nome, (titulo, tam, sub, linhas, rodape) in TELAS.items():
+        img = fundo.copy()
+        escuro = Image.new("RGBA", (W, H), (0, 0, 0, 70))
+        img.alpha_composite(escuro)
+        altura = tam + (60 if sub else 0) + len(linhas) * 44
+        y = (H - altura) // 2 - (20 if linhas else 40)
+        texto(img, (W // 2, y), titulo, fonte(assets, negrito, tam))
+        y += int(tam * 1.3) + (30 if linhas else 0)
+        if sub:
+            texto(img, (W // 2, y), sub, fonte(assets, normal, 36), (225, 225, 240))
+            y += 60
+        f = fonte(assets, normal, 28)
+        if linhas:   # bloco alinhado à esquerda, centralizado na tela
+            largura = max(ImageDraw.Draw(img).textlength(s, font=f) for s in linhas)
+            x = int((W - largura) // 2)
+        for linha in linhas:
+            texto(img, (x, y), linha, f, (235, 235, 245), centro=False)
+            y += 44
+        if rodape:
+            texto(img, (W // 2, H - 90), rodape, fonte(assets, normal, 30), (210, 210, 230))
+        destino = os.path.join(saida, nome + ".ppm")   # PPM: o formato do fbsplash
+        img.convert("RGB").save(destino)
+        print("  tela:", destino)
+
+
+def main():
+    if len(sys.argv) not in (3, 4):
+        sys.exit(__doc__)
+    assets, saida = sys.argv[1], sys.argv[2]
+    icones = os.path.join(assets, "xmb", "monochrome", "png")
+    os.makedirs(saida, exist_ok=True)
+    principal = None
     for titulo, (c1, c2, brilho, semente) in FUNDOS.items():
         img = degrade(c1, c2, brilho).convert("RGBA")
         pad = padrao(icones, semente)
@@ -142,12 +209,16 @@ def main():
         destino = os.path.join(saida, titulo + ".png")
         img.convert("RGB").save(destino, optimize=True)
         print("  fundo:", destino)
+        if principal is None:
+            principal = img
     for titulo, origem in COPIAS.items():
         destino = os.path.join(saida, titulo + ".png")
         if os.path.lexists(destino):
             os.remove(destino)
         os.symlink(origem + ".png", destino)
         print("  fundo:", destino, "->", origem + ".png")
+    if len(sys.argv) == 4:
+        telas(assets, principal, sys.argv[3])
 
 
 if __name__ == "__main__":

@@ -1,22 +1,29 @@
 #!/bin/sh
 # Gera as listas (playlists) do RetroArch a partir das pastas da partição JOGOS.
 # Cada pasta em /media/jogos/roms/<sistema> vira uma lista com o core certo
-# (tabela em /usr/share/stv2000/systems.conf). Roda a cada boot, antes do RetroArch.
+# (tabela em /usr/share/stv2000/systems.conf). Roda no boot, antes do RetroArch, e a cada
+# 15 s enquanto ele está aberto (jogos copiados pela rede aparecem ao reabrir a aba).
 # O nome mostrado é o do arquivo, sem o que estiver entre parênteses/colchetes, menos a
 # região e o disco: "Sonic (USA, Europe) (Rev 1).md" aparece como "Sonic (USA, Europe)".
 # O nome completo continua valendo para achar a capa no servidor libretro.
+# O core escolhido em "Definir núcleo" e o nome trocado em "Renomear" são mantidos.
 # Uso: stv-playlists [-f]   (-f força regerar mesmo sem mudanças)
 JOGOS="${JOGOS:-/media/jogos}"
 ROMS="$JOGOS/roms"
 CONF=/usr/share/stv2000/systems.conf
 CORES=/usr/lib/libretro
+INFO=/usr/share/libretro/info
 PL="$HOME/.config/retroarch/playlists"
 STAMP="$HOME/.cache/stv-playlists.sig"
 
 [ -d "$ROMS" ] || { echo "stv-playlists: $ROMS não existe"; exit 0; }
 mkdir -p "$PL" "${STAMP%/*}"
+# uma execução por vez (a do boot e a periódica da sessão)
+exec 9>"${STAMP%/*}/stv-playlists.lock"
+flock -n 9 || exit 0
 
-sig=$( { find "$ROMS" -type f 2>/dev/null | sort; cat "$CONF"; } | md5sum | cut -d' ' -f1)
+# assinatura: arquivos + tabela + este script (uma versão nova regera as listas)
+sig=$( { find "$ROMS" -type f 2>/dev/null | sort; cat "$CONF" "$0"; } | md5sum | cut -d' ' -f1)
 if [ "$1" != "-f" ] && [ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$sig" ]; then
     exit 0
 fi
@@ -25,16 +32,39 @@ grep -v '^#' "$CONF" | while IFS='|' read -r dir db core exts desc bios; do
     [ -n "$dir" ] || continue
     out="$PL/$db.lpl"
     if [ ! -d "$ROMS/$dir" ]; then rm -f "$out"; continue; fi
+    rm -f "$out.tmp"
+    # Cada jogo já leva o core (caminho + nome). Com "DETECT", ou sem o nome do core
+    # padrão, o RetroArch pergunta qual emulador usar (ex.: Mega Drive lista FBNeo,
+    # Genesis Plus GX e PicoDrive).
+    nome=$(sed -n 's/^display_name *= *"\(.*\)"/\1/p' "$INFO/${core}_libretro.info" 2>/dev/null)
+    [ -n "$nome" ] || nome="$core"
     find "$ROMS/$dir" -type f 2>/dev/null | sort | awk \
-        -v exts="$exts" -v core="$CORES/${core}_libretro.so" -v db="$db.lpl" \
-        -v sys="$dir" -v out="$out" '
+        -v exts="$exts" -v core="$CORES/${core}_libretro.so" -v cname="$nome" -v db="$db.lpl" \
+        -v sys="$dir" -v out="$out.tmp" -v velho="$out" '
     BEGIN {
         n = split(exts, e, " "); for (i = 1; i <= n; i++) ok[e[i]] = 1
         # arquivos de BIOS/sistema de arcade que não são jogos
         n = split("neogeo pgm nmk004 skns decocass isgsm midssio cchip bubsys namcoc69 namcoc70 namcoc75 ym2608 qsound hng64 coleco", b, " ")
         for (i = 1; i <= n; i++) bios[b[i]] = 1
+        # lista anterior: guarda o nome e o core de cada jogo (o RetroArch grava ali o
+        # "Definir núcleo" e o "Renomear"); core igual ao padrão antigo não é escolha
+        while ((getline line < velho) > 0) {
+            if (line ~ /^[ \t]*"default_core_path": "/) odef = val(line)
+            else if (line ~ /^[ \t]*"path": "/) p = val(line)
+            else if (p != "" && line ~ /^[ \t]*"label": "/) olab[p] = val(line)
+            else if (p != "" && line ~ /^[ \t]*"core_path": "/) ocore[p] = val(line)
+            else if (p != "" && line ~ /^[ \t]*"core_name": "/) ocname[p] = val(line)
+        }
+        close(velho)
     }
     function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); gsub(/\t/, " ", s); return s }
+    # valor de uma linha  "chave": "valor",  do JSON de volta para texto
+    function val(s,   r, k) {
+        sub(/^[ \t]*"[a-z_0-9]+": "/, "", s); sub(/",?[ \t\r]*$/, "", s)
+        r = ""                                     # \\  \"  \/  ->  \  "  /
+        while ((k = index(s, "\\")) > 0) { r = r substr(s, 1, k - 1) substr(s, k + 1, 1); s = substr(s, k + 2) }
+        return r s
+    }
     {
         path = $0; f = path; sub(/.*\//, "", f)
         if (f ~ /^[._]/) next                      # ocultos, _LEIA-ME.txt
@@ -59,18 +89,26 @@ grep -v '^#' "$CONF" | while IFS='|' read -r dir db core exts desc bios; do
         }
         total = 0
         for (i = 1; i <= cnt; i++) if (!(files[i] in ref)) total++
-        if (total == 0) { system("rm -f \"" out "\""); exit }
-        printf "{\n  \"version\": \"1.5\",\n  \"default_core_path\": \"%s\",\n  \"default_core_name\": \"\",\n", esc(core) > out
+        if (total == 0) exit
+        printf "{\n  \"version\": \"1.5\",\n  \"default_core_path\": \"%s\",\n  \"default_core_name\": \"%s\",\n", esc(core), esc(cname) > out
         printf "  \"label_display_mode\": 6,\n  \"right_thumbnail_mode\": 0,\n  \"left_thumbnail_mode\": 0,\n  \"sort_mode\": 0,\n  \"items\": [" > out
         first = 1
         for (i = 1; i <= cnt; i++) {
-            if (files[i] in ref) continue
-            printf "%s\n    {\n      \"path\": \"%s\",\n      \"label\": \"%s\",\n      \"core_path\": \"DETECT\",\n      \"core_name\": \"DETECT\",\n      \"crc32\": \"DETECT\",\n      \"db_name\": \"%s\"\n    }", (first ? "" : ","), esc(files[i]), esc(labels[i]), esc(db) > out
+            f = files[i]
+            if (f in ref) continue
+            lab = labels[i]; cp = core; cn = cname
+            if (olab[f] != "") lab = olab[f]
+            if (ocore[f] != "" && ocore[f] != "DETECT" && ocore[f] != odef && ocname[f] != "") {
+                cp = ocore[f]; cn = ocname[f]
+            }
+            printf "%s\n    {\n      \"path\": \"%s\",\n      \"label\": \"%s\",\n      \"core_path\": \"%s\",\n      \"core_name\": \"%s\",\n      \"crc32\": \"DETECT\",\n      \"db_name\": \"%s\"\n    }", (first ? "" : ","), esc(f), esc(lab), esc(cp), esc(cn), esc(db) > out
             first = 0
         }
         printf "\n  ]\n}\n" > out
         close(out)
         printf "%-13s %d jogo(s)\n", sys, total
     }'
+    # troca de uma vez: o RetroArch nunca lê uma lista pela metade
+    if [ -s "$out.tmp" ]; then mv -f "$out.tmp" "$out"; else rm -f "$out" "$out.tmp"; fi
 done
 echo "$sig" > "$STAMP"

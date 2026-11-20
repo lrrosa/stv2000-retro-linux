@@ -16,6 +16,8 @@ PKGS=(
     tzdata chrony openssh-server openssh-sftp-server doas nano
     # Wi-Fi (driver do SSV6051P vem do 35-wifi.sh; serve também para dongles USB)
     wpa_supplicant wireless-regdb iw
+    # compartilhamento da partição JOGOS na rede (\\STV2000\JOGOS, anônimo)
+    samba-server samba-server-openrc samba-common-tools
     # gráfico (Mali-450 = driver lima do Mesa, saída direta em KMS) e áudio
     mesa-dri-gallium mesa-egl mesa-gles mesa-gbm libdrm eudev-libs zlib libstdc++
     alsa-lib alsa-utils alsa-utils-openrc
@@ -53,7 +55,12 @@ kernel/fs/nls/nls_utf8.ko*
 EOF
     chroot_mount "$TARGET"
     log "Instalando pacotes do sistema final"
-    apk_root "$TARGET" -U add "${PKGS[@]}"
+    # rootfs já existente: mantém o kernel fixado pelo 35-wifi.sh (o "linux-lts" sem versão
+    # trocaria a fixação e poderia instalar outro kernel, sem o driver do Wi-Fi)
+    local pin pk=("${PKGS[@]}")
+    pin=$(grep -E '^linux-lts=' "$TARGET/etc/apk/world" 2>/dev/null || true)
+    [ -z "$pin" ] || pk=("${pk[@]/#linux-lts/$pin}")
+    apk_root "$TARGET" -U add "${pk[@]}"
     log "Kernel instalado:"; ls -la "$TARGET/boot"
 }
 
@@ -69,9 +76,18 @@ phase_config() {
     install -m644 "$ART"/cores/*_libretro.so "$TARGET/usr/lib/libretro/"
 
     log "Aplicando overlay de configuração"
-    cp -a "$PROJ/overlay/." "$TARGET/"
+    # Sem "cp -a": vindo de um disco do Windows (DrvFs, /mnt/x) tudo aparece como 777 e
+    # dono = uid 1000, que no aparelho é o gamer. Copia sem atributos e normaliza:
+    # root:root, pastas 755, arquivos 644 (o doas recusa config que não seja do root).
+    cp -r --no-preserve=all "$PROJ/overlay/." "$TARGET/"
+    ( cd "$PROJ/overlay" && find . -type d ) | while read -r d; do
+        chown root:root "$TARGET/$d"; chmod 755 "$TARGET/$d"
+    done
+    ( cd "$PROJ/overlay" && find . -type f ) | while read -r f; do
+        chown root:root "$TARGET/$f"; chmod 644 "$TARGET/$f"
+    done
     chmod 755 "$TARGET"/usr/local/bin/* "$TARGET"/usr/local/sbin/* "$TARGET"/etc/local.d/*.start \
-              "$TARGET"/etc/apk/commit_hooks.d/*.sh
+              "$TARGET"/etc/apk/commit_hooks.d/*.sh "$TARGET"/etc/init.d/stv-*
     chmod 600 "$TARGET/etc/doas.d/stv2000.conf"
     sed -i "s/@HOSTNAME@/$HOSTNAME_STV/g" "$TARGET/etc/hostname" "$TARGET/etc/hosts"
     sed -i "s/@LABEL_BOOT@/$LABEL_BOOT/; s/@LABEL_ROOT@/$LABEL_ROOT/; s/@LABEL_JOGOS@/$LABEL_JOGOS/" "$TARGET/etc/fstab"
@@ -83,12 +99,26 @@ phase_config() {
         id $USER_NAME >/dev/null 2>&1 || adduser -D -u $USER_UID -s /bin/sh -g 'Jogador' $USER_NAME
         for g in video input audio wheel; do addgroup $USER_NAME \$g >/dev/null 2>&1 || true; done
         echo '$USER_NAME:$USER_PASS' | chpasswd
+        # rede (Samba): o compartilhamento é anônimo; o login gamer serve para o
+        # Windows 11 24H2+, que bloqueia convidado
+        printf '%s\n%s\n' '$USER_PASS' '$USER_PASS' | smbpasswd -s -a $USER_NAME >/dev/null
+        pdbedit -L | grep -q '^$USER_NAME:' || exit 1
         passwd -l root >/dev/null 2>&1 || true
         id $USER_NAME
     " || die "falha ao criar o usuário $USER_NAME"
-    cp -a "$PROJ/overlay-home/." "$TARGET/home/$USER_NAME/"
+    cp -r --no-preserve=all "$PROJ/overlay-home/." "$TARGET/home/$USER_NAME/"
     mkdir -p "$TARGET/home/$USER_NAME/.config/retroarch/playlists" "$TARGET/home/$USER_NAME/.cache"
     chown -R $USER_UID:$USER_UID "$TARGET/home/$USER_NAME"
+    # o sshd recusa a chave se a pasta pessoal puder ser escrita por outros
+    find "$TARGET/home/$USER_NAME" -type d -exec chmod 755 {} +
+    find "$TARGET/home/$USER_NAME" -type f -exec chmod 644 {} +
+    # verificação: nada do sistema pode pertencer ao jogador nem ser gravável por todos
+    local ruim
+    ruim=$(find "$TARGET" -xdev \( -path "$TARGET/home" -o -path "$TARGET/tmp" -o -path "$TARGET/var/tmp" \
+                -o -path "$TARGET/proc" -o -path "$TARGET/sys" -o -path "$TARGET/dev" -o -path "$TARGET/run" \) -prune \
+                -o \( -uid "$USER_UID" -o \( -perm -0002 ! -type l ! -perm -1000 \) \) -print | head -n 20)
+    [ -z "$ruim" ] || die "arquivos do sistema com dono/permissão errados:
+$ruim"
     mkdir -p "$TARGET/media/jogos"
 
     log "Template da partição JOGOS"
@@ -107,8 +137,10 @@ phase_config() {
             echo "  (sem fundo para $db: usa o fundo do Menu principal)"
         fi
     done
-    # abas Menu principal / Configurações / Histórico / Favoritos (e submenus)
-    python3 "$PROJ/scripts/gen-fundos.py" "$A/xmb/monochrome/png" "$F" || die "falha ao gerar os fundos"
+    # abas Menu principal / Configurações / Histórico / Favoritos (e submenus), e as telas
+    # cheias do boot/desligamento (stv-tela)
+    python3 "$PROJ/scripts/gen-fundos.py" "$A" "$F" "$TARGET/usr/share/stv2000/telas" \
+        || die "falha ao gerar os fundos"
     # outros conjuntos de fundos e temas de outras plataformas (3DS, Switch): ~80 MB
     rm -rf "$A/wallpapers/nosh" "$A/wallpapers/blurred-consoles" "$A/wallpapers/bichromatic pads" \
            "$A/wallpapers/posterized consoles" "$A/switch" "$A/nxrgui" "$A/ctr"
@@ -120,9 +152,9 @@ phase_config() {
             [ -e /etc/init.d/$s ] || { echo "serviço inexistente: $s"; exit 1; }
             rc-update add $s $lvl >/dev/null 2>&1 || true
         done; }
-        add sysinit devfs dmesg udev udev-trigger udev-settle
+        add sysinit devfs dmesg udev udev-trigger udev-settle stv-splash
         add boot modules sysctl hostname bootmisc syslog swclock seedrng zram-init
-        add default udev-postmount networking chronyd sshd alsa local crond
+        add default udev-postmount networking chronyd sshd samba alsa local crond
         add shutdown killprocs mount-ro savecache
         # udev no lugar do mdev; sem hwclock (não há RTC útil), relógio via chrony
         for s in mdev hwdrivers; do rc-update del $s sysinit >/dev/null 2>&1 || true; done

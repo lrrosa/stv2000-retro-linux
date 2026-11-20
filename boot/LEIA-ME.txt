@@ -11,20 +11,27 @@ Como o aparelho dá boot por aqui
    "aml_autoscript", que grava no aparelho: "se houver cartão/USB com
    s905_autoscript, use-o; senão, ligue o Android". Isso é feito uma única vez.
 2. Daí em diante: com o cartão, liga o Alpine; sem o cartão, liga o Android.
-3. O "s905_autoscript" lê o uEnv.txt e carrega Image + uInitrd + o device tree.
+3. O "s905_autoscript" carrega o "u-boot.ext" (U-Boot moderno), que lê o
+   extlinux\extlinux.conf e carrega Image + initramfs-lts + o device tree.
 
-Se não aparecer imagem (tela preta) após o logo
------------------------------------------------
-Edite o uEnv.txt (Bloco de Notas) e troque a linha FDT= por uma alternativa:
-  FDT=/dtbs-lts/amlogic/meson-gxl-s905w-p281.dtb      (padrão, placa p281)
-  FDT=/dtbs-lts/amlogic/meson-gxl-s905w-tx3-mini.dtb  (outro S905W)
-  FDT=/dtbs-lts/amlogic/meson-gxl-s905x-p212.dtb      (S905X, muito parecido)
+Ver o texto do boot na TV (diagnóstico)
+---------------------------------------
+Normalmente a TV mostra só a tela de abertura. Para ver as mensagens, edite
+extlinux\extlinux.conf (Bloco de Notas) e acrescente " console=tty0" no fim da
+linha APPEND. Se a TV não aceitar 720p, apague também "video=HDMI-A-1:1280x720@60".
 
-Se mesmo assim não der boot
----------------------------
-Renomeie "u-boot.ext.alternativo" para "u-boot.ext". Assim um U-Boot
-moderno (mainline) é carregado primeiro e ele usa extlinux\extlinux.conf
-(troque o FDT lá também, se precisar). Para voltar, renomeie de novo.
+Se não aparecer imagem (tela preta)
+-----------------------------------
+Troque o FDT no extlinux\extlinux.conf por uma alternativa:
+  FDT /dtbs-lts/amlogic/meson-gxl-s905w-p281.dtb      (padrão, placa p281)
+  FDT /dtbs-lts/amlogic/meson-gxl-s905w-tx3-mini.dtb  (outro S905W)
+  FDT /dtbs-lts/amlogic/meson-gxl-s905x-p212.dtb      (S905X, muito parecido)
+
+Boot sem o U-Boot moderno (alternativa)
+---------------------------------------
+Renomeie "u-boot.ext" para "u-boot.ext.desativado": o U-Boot de fábrica passa a
+carregar o kernel direto, usando o uEnv.txt (linha FDT= como acima). No STV-2000
+testado esse caminho deu tela preta; fica só como alternativa para outras placas.
 
 Diagnóstico pela serial: pinos UART da placa (ao lado do conector de
 energia), 115200 8N1, 3,3 V.
@@ -32,9 +39,9 @@ energia), 115200 8N1, 3,3 V.
 Arquivos
 --------
   aml_autoscript(.cmd)   script do "palito" (habilita boot por SD/USB)
-  s905_autoscript(.cmd)  script de boot (lê o uEnv.txt)
-  uEnv.txt               kernel, initrd, device tree e parâmetros do kernel
-  Image, uInitrd         kernel e initramfs no formato do U-Boot de fábrica
-  vmlinuz-lts, initramfs-lts, dtbs-lts\   arquivos originais do Alpine
-  extlinux\extlinux.conf usado só com o u-boot.ext
-  u-boot.ext.alternativo U-Boot mainline (p212), desativado por padrão
+  s905_autoscript(.cmd)  script de boot (carrega o u-boot.ext)
+  u-boot.ext             U-Boot mainline (placa p212, mesma família do S905W)
+  extlinux\extlinux.conf kernel, initramfs, device tree e parâmetros do kernel
+  Image, initramfs-lts, dtbs-lts\   kernel, initramfs e device trees
+  uEnv.txt, uInitrd      usados só no boot alternativo pelo U-Boot de fábrica
+  vmlinuz-lts            kernel original do Alpine (o Image sai dele)

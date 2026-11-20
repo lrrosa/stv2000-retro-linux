@@ -1,5 +1,5 @@
-# Usado apenas pelo U-Boot mainline alternativo (u-boot.ext).
-# O U-Boot de fábrica do aparelho usa o uEnv.txt.
+# Boot do STV-2000 pelo U-Boot mainline (u-boot.ext), carregado pelo U-Boot de fábrica.
+# Para ver o texto do boot na TV: acrescente " console=tty0" no fim da linha APPEND.
 DEFAULT alpine
 TIMEOUT 10
 

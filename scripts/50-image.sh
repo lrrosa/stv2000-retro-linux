@@ -18,7 +18,10 @@ cp "$PROJ/boot/aml_autoscript.cmd" "$PROJ/boot/s905_autoscript.cmd" "$PROJ/boot/
 sed "s|@DTB@|$DTB_DEFAULT|; s|@CMDLINE@|$KERNEL_CMDLINE|" "$PROJ/boot/uEnv.txt.in" > "$B/uEnv.txt"
 mkdir -p "$B/extlinux"
 sed "s|@DTB@|$DTB_DEFAULT|; s|@CMDLINE@|$KERNEL_CMDLINE|" "$PROJ/boot/extlinux.conf.in" > "$B/extlinux/extlinux.conf"
-[ -f "$ART/u-boot.ext" ] && cp "$ART/u-boot.ext" "$B/u-boot.ext.alternativo"
+# U-Boot mainline carregado em cadeia pelo de fábrica: é o caminho que funciona no
+# aparelho (o boot direto pelo U-Boot de fábrica + uEnv.txt dá tela preta).
+[ -f "$ART/u-boot.ext" ] || die "falta o U-Boot mainline (rode 40-uboot.sh)"
+cp "$ART/u-boot.ext" "$B/u-boot.ext"
 # Image cru + uInitrd + scripts compilados: o mesmo script que roda no aparelho
 PATH="$PATH" sh "$PROJ/overlay/usr/local/sbin/stv-update-boot" "$B"
 [ -f "$B/dtbs-lts/$DTB_DEFAULT" ] || die "DTB $DTB_DEFAULT não existe"

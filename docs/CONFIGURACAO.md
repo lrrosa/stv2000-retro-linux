@@ -11,7 +11,8 @@ português. Tudo se faz com o controle:
 | ↑ ↓ | escolhe o jogo (segure para andar rápido; L/R pulam por letra) |
 | botão de **baixo** (B no SNES, A no Xbox, ✕ no PlayStation) | abre / confirma: no jogo, escolha **Executar** |
 | botão da **direita** (A no SNES, B no Xbox, ○ no PlayStation) | volta |
-| Start + Select | durante o jogo: menu rápido (salvar/carregar estado, trocar disco, **Fechar conteúdo**) |
+| **Select + Start** | durante o jogo: **sai do jogo** e volta à lista |
+| **segurar Start** (2 s) | durante o jogo: menu rápido (salvar/carregar estado, trocar disco) |
 
 Prefere confirmar com o botão da direita, como no SNES? A troca fica em *Configurações →
 Entrada*, nos controles do menu (trocar os botões OK e Cancelar).
@@ -41,15 +42,25 @@ o da aba, por exemplo `Nintendo - Super Nintendo Entertainment System`. Os carac
 
 ## Colocando jogos
 
-1. Desligue o aparelho (*Menu principal → Desligar*) e tire o cartão.
-2. No PC, abra a unidade **`JOGOS`**. Há um `LEIA-ME.txt` com a tabela completa.
-3. Copie cada jogo para a pasta do seu sistema, dentro de `roms\` (por exemplo
-   `roms\snes\Jogo.sfc`, `roms\psx\Jogo.cue` + `Jogo.bin`). Cada pasta tem um
-   `_LEIA-ME.txt` com as extensões aceitas.
-4. Ejete o cartão com segurança, coloque no aparelho e ligue.
+Cada jogo vai para a pasta do seu sistema, dentro de `roms\` (por exemplo
+`roms\snes\Jogo.sfc`, `roms\psx\Jogo.cue` + `Jogo.bin`). Há um `LEIA-ME.txt` com a
+tabela completa, e cada pasta tem um `_LEIA-ME.txt` com as extensões aceitas.
 
-As listas do RetroArch são **recriadas automaticamente a cada boot** quando o conteúdo
-de `roms\` muda. Cada sistema aparece como uma aba no menu, já com o emulador certo.
+**Pela rede**, com o aparelho ligado: no PC, abra `\\STV2000\JOGOS` (veja
+[Pasta de jogos pela rede](#pasta-de-jogos-pela-rede-smb)) e copie ou apague os jogos.
+
+**Pelo cartão**:
+
+1. Desligue o aparelho (*Menu principal → Desligar*) e tire o cartão.
+2. No PC, abra a unidade **`JOGOS`** e copie os jogos.
+3. Ejete o cartão com segurança, coloque no aparelho e ligue.
+
+As listas do RetroArch são **atualizadas sozinhas** quando o conteúdo de `roms\` muda:
+no boot e, com o aparelho ligado, a cada 15 segundos. Cada sistema aparece como uma aba
+no menu, já com o emulador certo. Um jogo novo num sistema que já tem aba aparece ao
+entrar de novo na aba. Um **sistema novo** ganha aba depois de *Menu principal →
+Reiniciar*. A exceção é o aparelho sem nenhum jogo: aí o menu reabre sozinho quando o
+primeiro jogo chega.
 
 Dicas:
 - `.zip` e `.7z` funcionam nos consoles. Em arcade, **não descompacte nem renomeie** os
@@ -78,16 +89,21 @@ Copie para `JOGOS\bios\` com o nome exato:
 
 - Controles USB comuns (genéricos, Xbox, PlayStation com cabo, 8BitDo…) são
   **configurados automaticamente** ao conectar.
-- **Start + Select** abre o menu do RetroArch durante o jogo (salvar/carregar estado,
-  trocar disco, sair do jogo).
+- **Select + Start** sai do jogo e volta à lista (como no Batocera/RetroPie). No menu,
+  sem jogo aberto, essa combinação não faz nada.
+- **Segurar Start por 2 segundos** abre o menu do RetroArch durante o jogo
+  (salvar/carregar estado, trocar disco, opções do emulador).
+- Cada sistema abre direto no emulador padrão (tabela `systems.conf`). Para usar outro
+  num jogo: abra o jogo na lista → *Definir núcleo*.
 - Para remapear: *Configurações → Entrada → Controles da porta 1*.
 - As configurações mais técnicas ficam escondidas. Para vê-las: *Configurações →
   Interface do usuário → Mostrar configurações avançadas*.
 
 ## Desligar e reiniciar
 
-*Menu principal* → **Desligar** (ou **Reiniciar**). O aparelho fecha tudo com segurança.
-Pode tirar da tomada quando a tela apagar. (O STV-2000 não tem botão de energia.)
+*Menu principal* → **Desligar** (ou **Reiniciar**). O aparelho fecha tudo com segurança
+e mostra a tela "Desligando...". Pode tirar da tomada quando a tela apagar. (O STV-2000
+não tem botão de energia.)
 No teclado, apertar **Esc** duas vezes também desliga.
 
 ## Vídeo
@@ -107,6 +123,47 @@ amixer -c 0 contents | grep -A2 -E "HDMI|ACODEC"
 amixer -c 0 sset 'AIU HDMI CTRL SRC' 'I2S'
 ```
 
+## Pasta de jogos pela rede (SMB)
+
+Com o cabo de rede ligado (ou o Wi-Fi configurado), a partição JOGOS fica
+compartilhada na rede local, **sem usuário nem senha**:
+
+- **Windows**: no Explorador de Arquivos, digite na barra de endereço
+  **`\\STV2000\JOGOS`** (ou `\\<IP>\JOGOS`). Para deixar como unidade fixa: botão
+  direito em *Este Computador → Mapear unidade de rede*.
+- **Android**: num gerenciador de arquivos com SMB (CX File Explorer, Solid Explorer,
+  VLC…), adicione o servidor pelo IP como **anônimo/convidado**.
+- **macOS**: Finder → *Ir → Conectar ao Servidor* → `smb://<IP>/JOGOS` → *Convidado*.
+- **Linux**: `smb://stv2000/JOGOS` no gerenciador de arquivos.
+
+O aparelho só aceita conexões da rede local (endereços `192.168.x.x`, `10.x.x.x` e
+`172.16-31.x.x`).
+
+> [!IMPORTANT]
+> **Windows 11 24H2 ou mais novo** bloqueia pastas anônimas por padrão. A mensagem é
+> *"Você não pode acessar esta pasta compartilhada porque as políticas de segurança da
+> organização bloqueiam o acesso de convidado não autenticado"*. Para resolver sem
+> mexer na segurança do PC, guarde uma vez o usuário do aparelho no Windows. No
+> PowerShell (não precisa ser administrador), rode:
+>
+> ```powershell
+> cmdkey /add:STV2000 /user:gamer /pass:retro
+> ```
+>
+> Depois disso, `\\STV2000\JOGOS` abre direto, sem perguntar nada. Se você acessa pelo
+> IP, use o IP no lugar de `STV2000`. Se trocar a senha do Samba no aparelho, rode o
+> `cmdkey` de novo com a senha nova.
+
+- O nome `STV2000` é anunciado por NetBIOS. Ele **não aparece sozinho** na seção
+  *Rede* do Explorador: digite o endereço. Se o nome não for encontrado, use o IP
+  (ele aparece no roteador ou em *Menu principal → Informações → Rede*).
+- Dá para copiar jogos com o aparelho no menu ou até durante um jogo. Evite apagar o
+  jogo que está aberto.
+- A senha do login `gamer` na rede é separada da senha do SSH. Para trocá-la (por SSH):
+  `doas smbpasswd gamer`.
+- Para desligar o compartilhamento: `doas rc-update del samba && doas rc-service samba stop`.
+  A configuração fica em `/etc/samba/smb.conf`.
+
 ## Rede e SSH
 
 Com o cabo de rede ligado (ou o Wi-Fi configurado, veja abaixo), o aparelho pega IP
@@ -117,15 +174,17 @@ ssh gamer@stv2000        # ou ssh gamer@<IP>
 ```
 
 - Usuário **`gamer`**, senha inicial **`retro`**. **Troque logo:** `passwd`.
-- O `root` fica bloqueado. Para administrar, use `doas` (ex.: `doas apk add htop`).
-- Arquivos também podem ser transferidos por SFTP (WinSCP, FileZilla). Os jogos ficam em
-  `/media/jogos`.
+- O `root` fica bloqueado. Para administrar, use `doas` (ex.: `doas apk add htop`), que
+  pede a senha do `gamer`.
+- Arquivos também podem ser transferidos por SFTP (WinSCP, FileZilla), com o mesmo
+  usuário e senha. Os jogos ficam em `/media/jogos`.
 
 ## Comandos úteis
 
 | Comando | Para quê |
 |---|---|
 | `stv-playlists -f` | recria as listas de jogos (depois reabra o RetroArch) |
+| `doas rc-service samba restart` | reinicia o compartilhamento de rede (depois de editar o `smb.conf`) |
 | `touch ~/.sem-autostart` | o RetroArch deixa de abrir sozinho (para voltar: `rm ~/.sem-autostart`) |
 | `doas apk update && doas apk upgrade` | atualiza os programas (o kernel fica fixo, veja "Atualizações") |
 | `doas stv-wifi status` / `restart` | estado do Wi-Fi / reconecta depois de editar o `wifi.txt` |
@@ -150,10 +209,11 @@ Pode preencher o `wifi.txt` logo depois de gravar o cartão, antes do primeiro b
 ele é mantido quando a partição JOGOS é expandida.
 
 > [!IMPORTANT]
-> O driver é **experimental** e ainda não foi testado neste aparelho. O chip só
-> enxerga redes de **2,4 GHz** e é lento (por volta de 10 Mbit/s nos testes do autor
-> do driver). Isso basta para capas de jogos, SSH e atualizações. Para jogar on-line
-> (netplay), prefira o cabo.
+> O chip só enxerga redes de **2,4 GHz**. No teste neste aparelho ele conectou sozinho
+> e alcançou **cerca de 30–37 Mbit/s** (cópia de arquivo por cima do SSH, com o roteador
+> perto; longe do roteador a taxa cai). É um driver da comunidade, fora da árvore do
+> kernel, mas estável no uso. Ainda assim, o **cabo de rede** (10/100) tem menor latência
+> — para netplay, prefira o cabo.
 
 Por SSH: `doas stv-wifi status` mostra a conexão, `doas stv-wifi restart` reconecta
 depois de editar o `wifi.txt`. Se a interface `wlan0` não aparecer, veja
@@ -184,4 +244,5 @@ copiada para o PC antes.
 | `/boot` | partição STVBOOT: kernel, `uEnv.txt`, scripts de boot |
 | `~/.config/retroarch/retroarch.cfg` | configuração do RetroArch |
 | `/usr/share/stv2000/systems.conf` | tabela pasta → sistema → emulador → extensões |
+| `/etc/samba/smb.conf` | compartilhamento de rede `\\STV2000\JOGOS` |
 | `/usr/lib/libretro` | emuladores (cores) |

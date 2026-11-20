@@ -53,20 +53,52 @@ navegar() {
     ra MENU_B; sleep 8; tela 9-menu-do-jogo
 }
 
+# Compartilhamento de rede (Samba, TCP 445 redirecionado para 14450): com o RetroArch
+# aberto sem nenhum jogo, envia um jogo como anônimo. A lista deve ser criada sozinha e
+# o RetroArch reaberto com a aba nova. Testa também o login gamer e uma senha errada.
+smb_teste() {
+    if ! command -v smbclient >/dev/null; then
+        echo "(smbclient ausente no host: teste do compartilhamento pulado)"; return 0
+    fi
+    local s=(smbclient //127.0.0.1/JOGOS -p 14450 -m SMB3)
+    printf 'teste' > "$Q/jogo-rede.nes"
+    echo "--- SMB anônimo: enviando roms/nes/Jogo Pela Rede (Brasil).nes"
+    "${s[@]}" -N -c "cd roms/nes; put $Q/jogo-rede.nes \"Jogo Pela Rede (Brasil).nes\"; ls" \
+        || echo "FALHA: acesso anônimo"
+    echo "--- SMB com o usuário gamer:"
+    "${s[@]}" -U "$USER_NAME%$USER_PASS" -c 'ls' | head -n 4 || echo "FALHA: login gamer"
+    echo "--- SMB com senha errada (deve ser recusado):"
+    if "${s[@]}" -U "$USER_NAME%errada" -c 'ls' >/dev/null 2>&1; then
+        echo "FALHA: aceitou senha errada"
+    else
+        echo "ok: recusado"
+    fi
+    sleep 100; tela 1b-jogo-pela-rede
+}
+
 boot_qemu() {  # nome [função a rodar com o sistema no ar]
     local name="$1" extra="${2:-}"
     rm -f "$Q/mon.sock" "$Q/serial-$name.log"
     qemu-system-aarch64 -M virt -cpu cortex-a53 -smp 4 -m 1024 \
         -kernel "$B/Image" -initrd "$B/initramfs-lts" \
-        -append "root=LABEL=$LABEL_ROOT rootfstype=ext4 rootwait rw console=tty0 console=ttyAMA0 net.ifnames=0" \
+        -append "root=LABEL=$LABEL_ROOT rootfstype=ext4 rootwait rw console=ttyAMA0 quiet loglevel=3 vt.global_cursor_default=0 net.ifnames=0" \
         -drive file="$IMG",format=raw,if=none,id=hd0 -device virtio-blk-pci,drive=hd0 \
         -device virtio-gpu-pci,xres=1280,yres=720 -device qemu-xhci -device usb-kbd \
-        -netdev user,id=n0,hostfwd=udp:127.0.0.1:55355-:55355 -device virtio-net-pci,netdev=n0 \
+        -netdev user,id=n0,hostfwd=udp:127.0.0.1:55355-:55355,hostfwd=tcp:127.0.0.1:14450-:445 \
+        -device virtio-net-pci,netdev=n0 \
         -display none -serial file:"$Q/serial-$name.log" \
         -monitor unix:"$Q/mon.sock",server,nowait &
     local pid=$!
     log "QEMU ($name) rodando por ${SECS}s..."
-    sleep "$SECS"
+    # tela de abertura (stv-splash), antes do RetroArch abrir. No QEMU ela fica uns 10 s,
+    # por volta dos 45-60 s (antes disso a saída de vídeo nem está ativa): tenta até pegar
+    local _
+    sleep 36
+    for _ in 1 2 3 4 5 6; do
+        sleep 3; tela "$name-abertura"
+        [ "$(stat -c %s "$Q/tela-$name-abertura.png" 2>/dev/null || echo 0)" -gt 100000 ] && break
+    done
+    sleep $((SECS - 66))
     tela "$name"
     if [ -n "$extra" ]; then "$extra"; fi
     sleep 2
@@ -85,12 +117,15 @@ if [ "${REUSAR:-0}" != 1 ]; then
     cp --sparse=always "$STAGE/imagem.img" "$IMG"
     truncate -s 8G "$IMG"
 
-    log "Preenchendo o wifi.txt antes do 1º boot (como faria o usuário no Windows)"
+    log "Mexendo na JOGOS antes do 1º boot, como no Windows (wifi.txt, um arquivo, a pasta do Windows)"
     mount -o loop,offset="$(part_off 3)" "$IMG" "$M"
     printf 'REDE=Rede de Teste\r\nSENHA=senha12345\r\n' > "$M/wifi.txt"
+    # arquivo do usuário fora de roms/ (não gera lista: o teste do Samba precisa do menu vazio)
+    printf 'bios de teste' > "$M/bios/teste-antes-do-boot.bin"
+    mkdir -p "$M/System Volume Information"; printf 'x' > "$M/System Volume Information/WPSettings.dat"
     umount "$M"
 
-    boot_qemu 1-primeiro-boot
+    boot_qemu 1-primeiro-boot smb_teste
     log "Partições depois do 1º boot:"; sfdisk -l "$IMG" | tail -n 4
 
     log "Colocando jogos de teste na partição JOGOS (arquivos fictícios)"
@@ -98,6 +133,10 @@ if [ "${REUSAR:-0}" != 1 ]; then
     df -h "$M" | tail -n 1
     ls "$M" "$M/roms" | head -n 40
     echo "--- wifi.txt depois da expansão (deve manter a rede de teste):"; tr -d '\r' < "$M/wifi.txt"
+    echo "--- roms/nes (deve ter o jogo enviado pela rede):"; ls -la "$M/roms/nes"
+    echo "--- arquivo de antes do 1º boot (deve continuar lá) e pasta do Windows (não deve):"
+    ls -la "$M/bios/teste-antes-do-boot.bin" || echo "FALHA: arquivo do usuário perdido na expansão"
+    [ -e "$M/System Volume Information" ] && echo "(System Volume Information voltou)" || echo "ok: sem System Volume Information"
     printf 'teste' > "$M/roms/nes/Jogo de Teste (Brasil).nes"
     printf 'teste' > "$M/roms/snes/Super Mario World (USA).sfc"
     printf 'teste' > "$M/roms/snes/Outro Jogo (Europe) (Rev 1).sfc"
@@ -120,6 +159,8 @@ for f in "$H"/.config/retroarch/playlists/*.lpl; do
     if [ -f "$f" ]; then echo "## $f"; cat "$f"; fi
 done
 echo "--- playlists.log:"; cat "$H/.cache/playlists.log" 2>/dev/null || true
+echo "--- stv-session.log:"; tail -n 20 "$H/.cache/stv-session.log" 2>/dev/null || true
+echo "--- samba (log.smbd):"; tail -n 15 "$M/var/log/samba/log.smbd" 2>/dev/null || true
 echo "--- retroarch.log (fim):"; tail -n 40 "$H/.cache/retroarch.log" 2>/dev/null || true
 echo "--- syslog (stv/erros):"; grep -aEi 'stv-|error|fail' "$M/var/log/messages" 2>/dev/null | tail -n 40 || true
 umount "$M"
