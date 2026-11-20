@@ -1,0 +1,79 @@
+#!/bin/sh
+# Wi-Fi do STV-2000: chip interno SSV6051P (driver ssv6051) ou dongle USB.
+# A rede e a senha ficam em JOGOS\wifi.txt, que dá para editar no Windows.
+# No boot é chamado em segundo plano por /etc/local.d/30-wifi.start.
+# Uso: stv-wifi [start|stop|status]
+CFG=/media/jogos/wifi.txt
+RUN=/run/stv-wifi
+IF="${STV_WIFI_IF:-wlan0}"
+
+log() { echo "stv-wifi: $*"; logger -t stv-wifi "$*" 2>/dev/null; }
+
+# valor de uma chave do wifi.txt (aceita CRLF do Bloco de Notas e espaços em volta)
+valor() {
+    tr -d '\r' < "$CFG" 2>/dev/null | sed -n "s/^[[:space:]]*$1[[:space:]]*=//p" | head -n 1 \
+        | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+parar() {
+    for p in "$RUN/udhcpc.pid" "$RUN/wpa.pid"; do
+        [ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null
+        rm -f "$p"
+    done
+    ip link set "$IF" down 2>/dev/null
+}
+
+iniciar() {
+    [ -f "$CFG" ] || { log "sem $CFG; Wi-Fi desligado"; return 0; }
+    rede=$(valor REDE); senha=$(valor SENHA); pais=$(valor PAIS)
+    [ -n "$rede" ] || { log "nenhuma rede em $CFG; Wi-Fi desligado"; return 0; }
+
+    mkdir -p "$RUN"; chmod 700 "$RUN"
+    ssid=$(printf '%s' "$rede" | od -An -tx1 | tr -d ' \n')   # hex: aceita qualquer caractere
+    if [ -z "$senha" ]; then
+        auth="key_mgmt=NONE"
+    else
+        psk=$(wpa_passphrase "$rede" "$senha" 2>/dev/null | sed -n 's/^[[:space:]]*psk=\([0-9a-f]\{64\}\)$/\1/p')
+        [ -n "$psk" ] || { log "senha inválida em $CFG (precisa ter de 8 a 63 caracteres)"; return 1; }
+        auth="psk=$psk"
+    fi
+    (
+        umask 077
+        cat > "$RUN/wpa_supplicant.conf" <<EOF
+ctrl_interface=/run/wpa_supplicant
+country=${pais:-BR}
+network={
+	ssid=$ssid
+	scan_ssid=1
+	$auth
+}
+EOF
+    )
+
+    # o driver do SSV6051P leva alguns segundos para carregar o firmware
+    [ -d "/sys/class/net/$IF" ] || modprobe -q ssv6051 2>/dev/null
+    i=0
+    while [ ! -d "/sys/class/net/$IF" ] && [ "$i" -lt 30 ]; do sleep 1; i=$((i + 1)); done
+    if [ ! -d "/sys/class/net/$IF" ]; then
+        log "a interface $IF não apareceu (diagnóstico: dmesg | grep -i -E 'ssv|mmc0|sdio')"
+        return 1
+    fi
+
+    parar
+    ip link set "$IF" up
+    wpa_supplicant -B -s -i "$IF" -c "$RUN/wpa_supplicant.conf" -P "$RUN/wpa.pid" \
+        || { log "wpa_supplicant falhou"; return 1; }
+    udhcpc -b -S -i "$IF" -x "hostname:$(hostname)" -p "$RUN/udhcpc.pid" >/dev/null 2>&1
+    log "conectando à rede \"$rede\" por $IF"
+}
+
+case "${1:-start}" in
+    start)   iniciar ;;
+    stop)    parar ;;
+    restart) parar; iniciar ;;
+    status)
+        ip -br addr show "$IF" 2>/dev/null || echo "$IF não existe"
+        wpa_cli -p /run/wpa_supplicant -i "$IF" status 2>/dev/null | grep -E '^(ssid|wpa_state|ip_address)='
+        ;;
+    *) echo "uso: $0 [start|stop|restart|status]"; exit 1 ;;
+esac

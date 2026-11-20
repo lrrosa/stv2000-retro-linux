@@ -1,0 +1,7 @@
+#!/bin/sh
+# CPU sempre na frequência máxima durante a emulação (o dissipador dá conta;
+# o kernel ainda reduz se esquentar demais).
+for g in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do
+    [ -w "$g" ] && echo performance > "$g"
+done
+exit 0

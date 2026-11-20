@@ -1,0 +1,5 @@
+#!/bin/sh
+# Login na serial (pinos UART da placa, 115200 8N1) só se a porta existir.
+TTY="${1:-ttyAML0}"
+[ -c "/dev/$TTY" ] || exec sleep 2147483647
+exec /sbin/getty -L 115200 "$TTY" vt100

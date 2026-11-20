@@ -1,0 +1,66 @@
+#!/bin/sh
+# 1º boot: expande a partição JOGOS (FAT32, partição 3) até o fim do cartão SD
+# e recria a estrutura de pastas. Só faz isso se ela ainda estiver vazia
+# (apenas o modelo de pastas); se você já copiou jogos, ela é mantida como está.
+MARK=/etc/stv2000/firstboot
+MNT=/media/jogos
+TEMPLATE=/usr/share/stv2000/jogos-template
+log() { echo "stv-firstboot: $*"; logger -t stv-firstboot "$*" 2>/dev/null; }
+fim() { rm -f "$MARK"; exit 0; }
+
+[ -f "$MARK" ] || exit 0
+dev=$(blkid -L JOGOS 2>/dev/null) || { log "partição JOGOS não encontrada"; fim; }
+name=${dev##*/}
+part=$(cat "/sys/class/block/$name/partition" 2>/dev/null)
+disk=$(basename "$(readlink -f "/sys/class/block/$name/..")")
+[ "$part" = 3 ] || { log "JOGOS ($dev) não é a partição 3; nada a fazer"; fim; }
+
+# O wifi.txt pode ter sido preenchido no PC antes do 1º boot: guarda para devolver.
+WIFI_BAK=/run/stv-firstboot-wifi.txt
+if mountpoint -q "$MNT" && [ -f "$MNT/wifi.txt" ] && ! cmp -s "$MNT/wifi.txt" "$TEMPLATE/wifi.txt"; then
+    cp "$MNT/wifi.txt" "$WIFI_BAK"
+fi
+
+formatar() {
+    umount "$MNT" 2>/dev/null
+    mkfs.vfat -F 32 -n JOGOS "$dev" >/dev/null || { log "mkfs.vfat falhou"; fim; }
+    mount "$MNT" && cp -r "$TEMPLATE/." "$MNT/" || { log "falha ao montar/copiar JOGOS"; fim; }
+    if [ -f "$WIFI_BAK" ]; then cp "$WIFI_BAK" "$MNT/wifi.txt"; rm -f "$WIFI_BAK"; fi
+    sync
+    log "partição JOGOS pronta: $(df -h "$MNT" | awk 'NR==2{print $2}')"
+    fim
+}
+
+# Já foi expandida antes de um reboot? Só falta formatar.
+if [ "$(cat "$MARK")" = "formatar" ]; then formatar; fi
+
+# O usuário já colocou arquivos? Então não mexe.
+if mountpoint -q "$MNT"; then
+    extra=$(cd "$MNT" && find . -type f ! -name '*LEIA-ME*' ! -name '.stv-*' ! -name 'wifi.txt' | head -n 1)
+    if [ -n "$extra" ]; then
+        log "JOGOS já tem arquivos ($extra); mantendo o tamanho atual"
+        fim
+    fi
+fi
+
+total=$(cat "/sys/class/block/$disk/size")
+start=$(cat "/sys/class/block/$name/start")
+size=$(cat "/sys/class/block/$name/size")
+livre=$((total - start - size))
+if [ "$livre" -lt 204800 ]; then   # < 100 MB livres depois dela
+    log "não há espaço livre no cartão para expandir"
+    fim
+fi
+
+log "expandindo $dev até o fim de /dev/$disk"
+umount "$MNT" 2>/dev/null
+echo ", +" | sfdisk --no-reread --no-tell-kernel -N 3 "/dev/$disk" >/dev/null 2>&1 \
+    || { log "sfdisk falhou"; mount "$MNT"; fim; }
+partx -u -n 3 "/dev/$disk" 2>/dev/null
+if [ "$(cat "/sys/class/block/$name/size")" -le "$size" ]; then
+    log "o kernel não releu a tabela de partições; reiniciando para concluir"
+    echo formatar > "$MARK"
+    reboot
+    exit 0
+fi
+formatar

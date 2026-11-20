@@ -1,0 +1,13 @@
+#!/bin/sh
+# Liga o caminho de áudio do S905W (driver AIU): saída HDMI e, se existir, a AV analógica.
+# No kernel mainline esses seletores começam desligados. Também é chamado pelo stv-session.
+command -v amixer >/dev/null || exit 0
+for card in /proc/asound/card[0-9]*; do
+    [ -d "$card" ] || continue
+    c=${card##*card}
+    amixer -q -c "$c" sset 'AIU HDMI CTRL SRC' 'I2S' 2>/dev/null
+    amixer -q -c "$c" sset 'AIU ACODEC SRC' 'I2S' 2>/dev/null
+    amixer -q -c "$c" sset 'AIU ACODEC OUT EN' on 2>/dev/null
+    amixer -q -c "$c" sset 'ACODEC Playback' 90% unmute 2>/dev/null
+done
+exit 0

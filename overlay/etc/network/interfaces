@@ -1,0 +1,9 @@
+auto lo
+iface lo inet loopback
+
+# Rede cabeada 10/100
+auto eth0
+iface eth0 inet dhcp
+	pre-up /usr/local/sbin/stv-mac eth0
+
+# Wi-Fi (wlan0): configurado pelo arquivo JOGOS\wifi.txt, via /usr/local/sbin/stv-wifi

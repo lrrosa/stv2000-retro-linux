@@ -1,0 +1,78 @@
+#!/bin/sh
+# Sessão do jogador no tty1 (TV): atualiza as listas de jogos e mantém o RetroArch aberto.
+#   Menu principal > "Desligar"            => desliga o aparelho com segurança.
+#   Menu principal > "Reiniciar"           => reinicia (o RetroArch cria /tmp/stv-reiniciar).
+#   Se o RetroArch travar/fechar com erro  => reabre sozinho.
+# Para usar só o terminal: crie ~/.sem-autostart (ex.: via SSH) e reinicie.
+[ "$(tty)" = /dev/tty1 ] || exit 0
+if [ -e "$HOME/.sem-autostart" ]; then
+    echo "RetroArch automático desativado (apague ~/.sem-autostart para voltar)."
+    exit 0
+fi
+
+LOG="$HOME/.cache/retroarch.log"
+PL="$HOME/.config/retroarch/playlists"
+mkdir -p "$HOME/.cache"
+printf '\033[?25l'   # esconde o cursor do console
+
+sem_jogos() {
+    clear
+    cat <<'EOF'
+
+
+      STV-2000 Retro  -  nenhum jogo encontrado
+
+      Para colocar jogos:
+        1. Desligue o aparelho (menu principal > Desligar) e tire o cartão SD.
+        2. Coloque o cartão no computador: aparece a unidade "JOGOS".
+        3. Copie cada jogo para a pasta do sistema, em JOGOS\roms
+           (ex.: roms\snes, roms\megadrive, roms\psx). Veja LEIA-ME.txt.
+        4. Volte o cartão para o aparelho e ligue.
+
+      As listas de jogos são montadas sozinhas a cada inicialização.
+
+      O menu abre em alguns segundos...
+EOF
+    read -r -t 20 _ || true   # Enter no teclado pula a espera
+}
+
+falhas=0
+while :; do
+    clear
+    rm -f /tmp/stv-reiniciar
+    /usr/local/bin/stv-playlists > "$HOME/.cache/playlists.log" 2>&1
+    if [ "$falhas" -eq 0 ] && ! ls "$PL"/*.lpl >/dev/null 2>&1; then
+        sem_jogos
+    fi
+    /etc/local.d/20-audio.start   # a placa de som pode ter subido depois do boot
+    retroarch > "$LOG" 2>&1
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+        clear
+        echo
+        sync
+        if [ -e /tmp/stv-reiniciar ]; then
+            echo "  Reiniciando o STV-2000..."
+            doas /sbin/reboot
+        else
+            echo "  Desligando o STV-2000..."
+            echo "  Pode tirar da tomada quando a tela apagar."
+            doas /sbin/poweroff
+        fi
+        sleep 60
+    fi
+    falhas=$((falhas + 1))
+    if [ "$falhas" -ge 5 ]; then
+        printf '\033[?25h'
+        echo "O RetroArch fechou com erro $falhas vezes seguidas (código $rc)."
+        echo "Últimas linhas de $LOG:"
+        tail -n 15 "$LOG"
+        echo
+        echo "Enter = tentar de novo.  (Ou acesse por SSH: ssh $(id -un)@$(hostname))"
+        read -r _
+        falhas=0
+        printf '\033[?25l'
+    else
+        sleep 2
+    fi
+done

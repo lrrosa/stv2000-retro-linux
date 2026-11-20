@@ -1,0 +1,11 @@
+# Usado apenas pelo U-Boot mainline alternativo (u-boot.ext).
+# O U-Boot de fábrica do aparelho usa o uEnv.txt.
+DEFAULT alpine
+TIMEOUT 10
+
+LABEL alpine
+  MENU LABEL Alpine Linux STV-2000
+  LINUX /Image
+  INITRD /initramfs-lts
+  FDT /dtbs-lts/@DTB@
+  APPEND @CMDLINE@

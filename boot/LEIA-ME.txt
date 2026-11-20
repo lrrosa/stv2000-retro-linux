@@ -1,0 +1,40 @@
+STV-2000 - Partição de BOOT do Alpine Linux
+============================================
+
+Não apague nada aqui. Os jogos vão na outra partição, "JOGOS".
+
+Como o aparelho dá boot por aqui
+--------------------------------
+1. Na 1ª vez, com o cartão inserido e o aparelho desligado, segure o botão
+   escondido dentro do conector AV (palito de dente, sem metal) e ligue a
+   fonte. Solte quando a tela apagar. O U-Boot de fábrica roda o
+   "aml_autoscript", que grava no aparelho: "se houver cartão/USB com
+   s905_autoscript, use-o; senão, ligue o Android". Isso é feito uma única vez.
+2. Daí em diante: com o cartão, liga o Alpine; sem o cartão, liga o Android.
+3. O "s905_autoscript" lê o uEnv.txt e carrega Image + uInitrd + o device tree.
+
+Se não aparecer imagem (tela preta) após o logo
+-----------------------------------------------
+Edite o uEnv.txt (Bloco de Notas) e troque a linha FDT= por uma alternativa:
+  FDT=/dtbs-lts/amlogic/meson-gxl-s905w-p281.dtb      (padrão, placa p281)
+  FDT=/dtbs-lts/amlogic/meson-gxl-s905w-tx3-mini.dtb  (outro S905W)
+  FDT=/dtbs-lts/amlogic/meson-gxl-s905x-p212.dtb      (S905X, muito parecido)
+
+Se mesmo assim não der boot
+---------------------------
+Renomeie "u-boot.ext.alternativo" para "u-boot.ext". Assim um U-Boot
+moderno (mainline) é carregado primeiro e ele usa extlinux\extlinux.conf
+(troque o FDT lá também, se precisar). Para voltar, renomeie de novo.
+
+Diagnóstico pela serial: pinos UART da placa (ao lado do conector de
+energia), 115200 8N1, 3,3 V.
+
+Arquivos
+--------
+  aml_autoscript(.cmd)   script do "palito" (habilita boot por SD/USB)
+  s905_autoscript(.cmd)  script de boot (lê o uEnv.txt)
+  uEnv.txt               kernel, initrd, device tree e parâmetros do kernel
+  Image, uInitrd         kernel e initramfs no formato do U-Boot de fábrica
+  vmlinuz-lts, initramfs-lts, dtbs-lts\   arquivos originais do Alpine
+  extlinux\extlinux.conf usado só com o u-boot.ext
+  u-boot.ext.alternativo U-Boot mainline (p212), desativado por padrão

@@ -1,0 +1,9 @@
+# imagens geradas (vão como Release no GitHub, não no repositório)
+saida/
+*.img
+*.img.xz
+*.img.gz
+
+# cache do Python (scripts/gen-fundos.py)
+__pycache__/
+*.pyc

@@ -1,0 +1,4 @@
+#!/bin/sh
+# 1º boot: expande a partição JOGOS até o fim do cartão (ver /usr/local/sbin/stv-firstboot)
+[ -f /etc/stv2000/firstboot ] && /usr/local/sbin/stv-firstboot
+exit 0

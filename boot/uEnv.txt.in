@@ -1,0 +1,4 @@
+LINUX=/Image
+INITRD=/uInitrd
+FDT=/dtbs-lts/@DTB@
+APPEND=@CMDLINE@

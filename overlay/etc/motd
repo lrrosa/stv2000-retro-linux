@@ -1,0 +1,9 @@
+
+  Alpine Linux - estação de jogos do STV-2000 (Amlogic S905W)
+
+  Jogos ............ partição JOGOS do cartão: /media/jogos/roms/<sistema>
+  Recriar listas ... stv-playlists -f        (e reabra o RetroArch)
+  Sem RetroArch .... touch ~/.sem-autostart  (para voltar: rm ~/.sem-autostart)
+  Atualizar ........ doas apk upgrade
+  Desligar ......... doas poweroff
+

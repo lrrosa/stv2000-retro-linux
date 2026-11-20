@@ -1,0 +1,33 @@
+#!/bin/sh
+# Mantém o MAC da rede cabeada fixo entre boots.
+# O U-Boot de fábrica passa "mac=..." na linha de comando (lido do aparelho);
+# sem isso o driver mainline usaria um MAC aleatório a cada boot (e o roteador
+# daria um IP diferente). Nesse caso geramos um MAC estável a partir do serial do SoC.
+IF="${1:-eth0}"
+[ -e "/sys/class/net/$IF/address" ] || exit 0
+cur=$(cat "/sys/class/net/$IF/address")
+
+mac=
+for w in $(cat /proc/cmdline); do
+    case "$w" in mac=*) mac=${w#mac=} ;; esac
+done
+case "$mac" in
+    [0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]) ;;
+    *) mac= ;;
+esac
+
+if [ -z "$mac" ]; then
+    # MAC atual não é aleatório (bit "local" desligado)? então já é o de fábrica.
+    case "$cur" in ?[26aAeE]:*) ;; *) exit 0 ;; esac
+    serial=$(cat /sys/devices/soc0/serial_number 2>/dev/null)
+    [ -n "$serial" ] || serial=$(cat /sys/block/mmcblk*/device/cid 2>/dev/null | head -n 1)
+    [ -n "$serial" ] || exit 0
+    h=$(printf '%s' "$serial" | md5sum | cut -c1-10)
+    mac="02:$(echo "$h" | sed 's/../&:/g; s/:$//')"
+fi
+
+mac=$(echo "$mac" | tr 'A-F' 'a-f')
+[ "$mac" = "$cur" ] && exit 0
+ip link set dev "$IF" down 2>/dev/null
+ip link set dev "$IF" address "$mac" && echo "stv-mac: $IF -> $mac"
+exit 0

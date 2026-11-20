@@ -1,0 +1,46 @@
+#!/bin/sh
+# Mantém os arquivos que o U-Boot de fábrica (Amlogic) usa na partição de boot:
+#   Image          <- vmlinuz-lts   (Image arm64 cru; o U-Boot antigo não descomprime)
+#   uInitrd        <- initramfs-lts (com cabeçalho legacy do U-Boot)
+#   *_autoscript   <- *_autoscript.cmd
+# Chamado pelo hook do apk após atualizações do kernel. Uso: stv-update-boot [/boot]
+set -e
+B="${1:-/boot}"
+cd "$B"
+newer() { [ -f "$1" ] && { [ ! -f "$2" ] || [ "$1" -nt "$2" ]; }; }
+u32() { od -An -tu4 -j"$2" -N4 "$1" | tr -d ' '; }
+str() { dd if="$1" bs=1 skip="$2" count="$3" 2>/dev/null | tr -d '\000'; }
+
+if newer vmlinuz-lts Image; then
+    t=".Image.novo"
+    if [ "$(od -An -tx1 -N2 vmlinuz-lts | tr -d ' ')" = "1f8b" ]; then
+        gzip -dc vmlinuz-lts > "$t"
+    elif [ "$(str vmlinuz-lts 4 4)" = "zimg" ]; then
+        # EFI zboot: deslocamento/tamanho do payload em 0x08/0x0c, compressão em 0x18
+        off=$(u32 vmlinuz-lts 8); len=$(u32 vmlinuz-lts 12); comp=$(str vmlinuz-lts 24 8)
+        tail -c +$((off + 1)) vmlinuz-lts | head -c "$len" | case "$comp" in
+            gzip) gzip -dc ;; zstd*) zstd -dc ;; xz) xz -dc ;; lzma) unlzma -c ;; *) cat ;;
+        esac > "$t"
+    else
+        cp vmlinuz-lts "$t"
+    fi
+    if [ "$(str "$t" 56 4)" != "ARMd" ]; then
+        rm -f "$t"; echo "stv-update-boot: não consegui extrair um Image arm64 válido" >&2; exit 1
+    fi
+    mv -f "$t" Image
+    echo "stv-update-boot: Image atualizado ($(du -h Image | cut -f1))"
+    # o s905_autoscript carrega o kernel em 0x11000000 e o initrd em 0x18000000 (112 MiB)
+    [ "$(wc -c < Image)" -lt 117440512 ] || echo "stv-update-boot: AVISO: Image > 112 MiB, ajuste ramdisk_addr_r no s905_autoscript.cmd" >&2
+fi
+if newer initramfs-lts uInitrd; then
+    mkimage -A arm64 -O linux -T ramdisk -C none -n uInitrd -d initramfs-lts .uInitrd.novo >/dev/null
+    mv -f .uInitrd.novo uInitrd
+    echo "stv-update-boot: uInitrd atualizado"
+fi
+for s in aml_autoscript s905_autoscript; do
+    if newer "$s.cmd" "$s"; then
+        mkimage -A arm64 -O linux -T script -C none -n "$s" -d "$s.cmd" "$s" >/dev/null
+        echo "stv-update-boot: $s compilado"
+    fi
+done
+sync

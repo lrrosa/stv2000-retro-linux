@@ -1,0 +1,5 @@
+# Scripts e configs rodam no Linux: sempre LF, mesmo clonando no Windows
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary

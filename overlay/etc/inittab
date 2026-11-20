@@ -1,0 +1,19 @@
+# /etc/inittab - STV-2000
+
+::sysinit:/sbin/openrc sysinit
+::sysinit:/sbin/openrc boot
+::wait:/sbin/openrc default
+
+# TV (HDMI): login automático do jogador, que abre o RetroArch (~/.profile)
+tty1::respawn:/bin/login -f gamer
+# Terminais extras (Ctrl+Alt+F2 / F3 com teclado USB)
+tty2::respawn:/sbin/getty 38400 tty2
+tty3::respawn:/sbin/getty 38400 tty3
+
+# Serial da placa (pinos UART, 115200 8N1) para diagnóstico. O 1º campo fica vazio:
+# o getty abre a porta sozinho e o script só o chama se a porta existir (se o init
+# abrisse /dev/ttyAML0, ficaria repetindo "can't open" quando ela não existe).
+::respawn:/usr/local/sbin/stv-serial-getty ttyAML0
+
+::ctrlaltdel:/sbin/reboot
+::shutdown:/sbin/openrc shutdown

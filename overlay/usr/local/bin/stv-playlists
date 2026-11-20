@@ -1,0 +1,76 @@
+#!/bin/sh
+# Gera as listas (playlists) do RetroArch a partir das pastas da partição JOGOS.
+# Cada pasta em /media/jogos/roms/<sistema> vira uma lista com o core certo
+# (tabela em /usr/share/stv2000/systems.conf). Roda a cada boot, antes do RetroArch.
+# O nome mostrado é o do arquivo, sem o que estiver entre parênteses/colchetes, menos a
+# região e o disco: "Sonic (USA, Europe) (Rev 1).md" aparece como "Sonic (USA, Europe)".
+# O nome completo continua valendo para achar a capa no servidor libretro.
+# Uso: stv-playlists [-f]   (-f força regerar mesmo sem mudanças)
+JOGOS="${JOGOS:-/media/jogos}"
+ROMS="$JOGOS/roms"
+CONF=/usr/share/stv2000/systems.conf
+CORES=/usr/lib/libretro
+PL="$HOME/.config/retroarch/playlists"
+STAMP="$HOME/.cache/stv-playlists.sig"
+
+[ -d "$ROMS" ] || { echo "stv-playlists: $ROMS não existe"; exit 0; }
+mkdir -p "$PL" "${STAMP%/*}"
+
+sig=$( { find "$ROMS" -type f 2>/dev/null | sort; cat "$CONF"; } | md5sum | cut -d' ' -f1)
+if [ "$1" != "-f" ] && [ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$sig" ]; then
+    exit 0
+fi
+
+grep -v '^#' "$CONF" | while IFS='|' read -r dir db core exts desc bios; do
+    [ -n "$dir" ] || continue
+    out="$PL/$db.lpl"
+    if [ ! -d "$ROMS/$dir" ]; then rm -f "$out"; continue; fi
+    find "$ROMS/$dir" -type f 2>/dev/null | sort | awk \
+        -v exts="$exts" -v core="$CORES/${core}_libretro.so" -v db="$db.lpl" \
+        -v sys="$dir" -v out="$out" '
+    BEGIN {
+        n = split(exts, e, " "); for (i = 1; i <= n; i++) ok[e[i]] = 1
+        # arquivos de BIOS/sistema de arcade que não são jogos
+        n = split("neogeo pgm nmk004 skns decocass isgsm midssio cchip bubsys namcoc69 namcoc70 namcoc75 ym2608 qsound hng64 coleco", b, " ")
+        for (i = 1; i <= n; i++) bios[b[i]] = 1
+    }
+    function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); gsub(/\t/, " ", s); return s }
+    {
+        path = $0; f = path; sub(/.*\//, "", f)
+        if (f ~ /^[._]/) next                      # ocultos, _LEIA-ME.txt
+        if (f !~ /\./) next
+        ext = f; sub(/.*\./, "", ext); ext = tolower(ext)
+        if (!(ext in ok)) next
+        label = f; sub(/\.[^.]*$/, "", label)
+        if ((sys == "arcade" || sys == "mame") && (tolower(label) in bios)) next
+        cnt++; files[cnt] = path; labels[cnt] = label
+        if (ext == "m3u") m3u[cnt] = 1
+    }
+    END {
+        # discos referenciados por um .m3u (jogo multidisco) não aparecem sozinhos
+        for (i = 1; i <= cnt; i++) if (i in m3u) {
+            d = files[i]; sub(/\/[^\/]*$/, "", d)
+            while ((getline line < files[i]) > 0) {
+                gsub(/\r/, "", line); if (line == "") continue
+                if (line !~ /^\//) line = d "/" line
+                ref[line] = 1
+            }
+            close(files[i])
+        }
+        total = 0
+        for (i = 1; i <= cnt; i++) if (!(files[i] in ref)) total++
+        if (total == 0) { system("rm -f \"" out "\""); exit }
+        printf "{\n  \"version\": \"1.5\",\n  \"default_core_path\": \"%s\",\n  \"default_core_name\": \"\",\n", esc(core) > out
+        printf "  \"label_display_mode\": 6,\n  \"right_thumbnail_mode\": 0,\n  \"left_thumbnail_mode\": 0,\n  \"sort_mode\": 0,\n  \"items\": [" > out
+        first = 1
+        for (i = 1; i <= cnt; i++) {
+            if (files[i] in ref) continue
+            printf "%s\n    {\n      \"path\": \"%s\",\n      \"label\": \"%s\",\n      \"core_path\": \"DETECT\",\n      \"core_name\": \"DETECT\",\n      \"crc32\": \"DETECT\",\n      \"db_name\": \"%s\"\n    }", (first ? "" : ","), esc(files[i]), esc(labels[i]), esc(db) > out
+            first = 0
+        }
+        printf "\n  ]\n}\n" > out
+        close(out)
+        printf "%-13s %d jogo(s)\n", sys, total
+    }'
+done
+echo "$sig" > "$STAMP"
