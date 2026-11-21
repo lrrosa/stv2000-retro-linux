@@ -1,5 +1,8 @@
 # /etc/fstab - STV-2000 (cartão SD: 1=boot FAT32, 2=sistema ext4, 3=JOGOS FAT32)
 LABEL=@LABEL_ROOT@   /             ext4   rw,noatime,commit=5   0 1
 LABEL=@LABEL_BOOT@   /boot         vfat   rw,noatime,fmask=0022,dmask=0022,nofail   0 2
-LABEL=@LABEL_JOGOS@  /media/jogos  vfat   rw,noatime,uid=1000,gid=1000,fmask=0022,dmask=0022,utf8,shortname=mixed,flush,nofail   0 2
+# JOGOS sem "flush": com ele cada arquivo fechado ia na hora para o cartão e copiar
+# muitos jogos pequenos pela rede andava a ~6 arquivos/s. A segurança contra tirar da
+# tomada vem do sysctl (90-stv2000.conf): o que foi copiado chega ao cartão em ~3 s.
+LABEL=@LABEL_JOGOS@  /media/jogos  vfat   rw,noatime,uid=1000,gid=1000,fmask=0022,dmask=0022,utf8,shortname=mixed,nofail   0 2
 tmpfs                /tmp          tmpfs  nosuid,nodev,size=128m   0 0

@@ -18,12 +18,12 @@ As listas do RetroArch são atualizadas sozinhas e os jogos aparecem no menu,
 cada sistema com o emulador (core) certo.
 
 Pela rede, sem tirar o cartão (aparelho ligado, com cabo de rede ou Wi-Fi):
-  no PC, abra  \\STV2000\JOGOS  (ou \\<IP do aparelho>\JOGOS), sem senha.
-  O Windows 11 24H2 ou mais novo bloqueia pasta sem senha. Rode uma vez no
-  PowerShell do PC:  cmdkey /add:STV2000 /user:gamer /pass:retro
+  no PC, abra  \\STV2000\JOGOS  (ou \\<IP do aparelho>\JOGOS).
+  O Windows pede usuário e senha uma vez: gamer / retro (marque "Lembrar
+  minhas credenciais"). Celular, TV e Mac entram como convidado, sem senha.
 
 Usuário e senha do sistema (SSH/SFTP): gamer / retro (troque com "passwd").
-O menu de jogos e a pasta na rede não pedem senha.
+O menu de jogos não pede senha.
 
   roms\         jogos, uma pasta por sistema (tabela abaixo)
   bios\         arquivos de BIOS exigidos por alguns sistemas
@@ -78,8 +78,9 @@ cat <<'EOF' | crlf > "$DEST/wifi.txt"
 #   REDE=MinhaCasa
 #   SENHA=minhasenha123
 #
-# O Wi-Fi interno do aparelho (chip SSV6051P) só enxerga redes de 2,4 GHz e é
-# lento (cerca de 10 Mbit/s): dá para baixar capas de jogos e acessar por SSH.
+# O Wi-Fi interno do aparelho (chip SSV6051P) só enxerga redes de 2,4 GHz e
+# chega a cerca de 30 Mbit/s perto do roteador: dá para baixar capas de jogos,
+# copiar jogos pela pasta de rede e acessar por SSH.
 # Para desligar o Wi-Fi, apague o nome da rede. A senha fica neste arquivo
 # em texto puro.
 #

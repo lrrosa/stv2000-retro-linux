@@ -99,8 +99,8 @@ phase_config() {
         id $USER_NAME >/dev/null 2>&1 || adduser -D -u $USER_UID -s /bin/sh -g 'Jogador' $USER_NAME
         for g in video input audio wheel; do addgroup $USER_NAME \$g >/dev/null 2>&1 || true; done
         echo '$USER_NAME:$USER_PASS' | chpasswd
-        # rede (Samba): o compartilhamento é anônimo; o login gamer serve para o
-        # Windows 11 24H2+, que bloqueia convidado
+        # rede (Samba): convidado só para login anônimo; o Windows 11 (que exige
+        # assinatura SMB e recusa convidado) entra com o login gamer
         printf '%s\n%s\n' '$USER_PASS' '$USER_PASS' | smbpasswd -s -a $USER_NAME >/dev/null
         pdbedit -L | grep -q '^$USER_NAME:' || exit 1
         passwd -l root >/dev/null 2>&1 || true

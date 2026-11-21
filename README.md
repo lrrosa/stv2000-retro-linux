@@ -1,15 +1,20 @@
 # STV-2000 Retro Linux
 
+<p align="center">
+  <img src="docs/fotos/stv2000.jpg" width="360"
+       alt="TV Box Aquário STV-2000 visto de cima, com o cartão microSD encaixado na lateral">
+</p>
+
 **Alpine Linux + RetroArch para o TV Box Aquário STV-2000 (Amlogic S905W).**
 Transforma o TV Box antigo em uma estação de jogos retrô leve, que liga direto no
 menu de jogos na TV. O sistema roda do cartão microSD, e o **Android original continua
 intacto**: sem o cartão, o aparelho liga normalmente no Android.
 
-> [!WARNING]
-> **Em desenvolvimento.** A imagem já é gerada e testada em emulador (QEMU), mas
-> **ainda não foi validada no aparelho real**. Ela será publicada na aba
-> [Releases](../../releases) quando o boot for confirmado no STV-2000.
-> Até lá, dá para gerar a imagem você mesmo ([docs/COMPILAR.md](docs/COMPILAR.md)).
+> [!TIP]
+> **Baixe a imagem pronta** na [última versão](../../releases/latest) (testada no
+> STV-2000) e siga a [instalação](docs/INSTALACAO.md): gravar o cartão e dar o primeiro
+> boot com o "palito". Também dá para gerar a imagem você mesmo
+> ([docs/COMPILAR.md](docs/COMPILAR.md)).
 
 ## Recursos
 
@@ -26,8 +31,9 @@ intacto**: sem o cartão, o aparelho liga normalmente no Android.
 - **Partição `JOGOS` em FAT32**: coloque o cartão no PC e copie os jogos para a pasta do
   sistema (`roms\snes`, `roms\psx`…). No boot seguinte eles aparecem no menu, cada
   sistema já com o emulador certo.
-- **Pasta de jogos na rede, sem senha**: no PC, abra `\\STV2000\JOGOS` e copie ou apague
-  jogos sem tirar o cartão. Eles aparecem no menu em poucos segundos.
+- **Pasta de jogos na rede**: no PC, abra `\\STV2000\JOGOS` (o Windows pede uma vez
+  `gamer` / `retro`; celular e TV entram como convidado) e copie ou apague jogos sem
+  tirar o cartão. Eles aparecem no menu em poucos segundos.
 - **Saves, states, capas e BIOS na mesma partição**, fáceis de fazer backup pelo Windows.
 - **Desligar e Reiniciar no menu principal**, como em um console. O aparelho desliga
   com segurança.
@@ -47,14 +53,15 @@ O menu de jogos não tem senha: o aparelho liga direto nele. Para acessar pela r
 
 | Acesso | Endereço | Usuário | Senha |
 |---|---|---|---|
-| Pasta de jogos (rede do Windows) | `\\STV2000\JOGOS` ou `\\<IP>\JOGOS` | nenhum (anônimo) | nenhuma |
+| Pasta de jogos (rede do Windows) | `\\STV2000\JOGOS` ou `\\<IP>\JOGOS` | **`gamer`** (celular/Mac: convidado) | **`retro`** |
 | SSH / SFTP (WinSCP, FileZilla) | `stv2000` ou o IP | **`gamer`** | **`retro`** |
 | Administração por SSH (`doas`) | | `gamer` | a mesma do `gamer` |
 
 - O `root` fica bloqueado; use `doas` (ex.: `doas apk add htop`).
 - **Troque a senha** depois do primeiro acesso por SSH: `passwd`.
-- **Windows 11 24H2 ou mais novo** bloqueia pastas anônimas. Rode uma vez no PowerShell
-  do PC `cmdkey /add:STV2000 /user:gamer /pass:retro` e a pasta abre direto. Veja
+- O **Windows** pede usuário e senha na primeira vez que abre a pasta de jogos: use
+  `gamer` / `retro` e marque *Lembrar minhas credenciais* (o Windows 11 não aceita
+  pasta de convidado). Celular, TV e Mac entram como convidado. Veja
   [Pasta de jogos pela rede](docs/CONFIGURACAO.md#pasta-de-jogos-pela-rede-smb).
 - O IP aparece no roteador ou no menu: *Menu principal → Informações → Rede*.
 
@@ -136,7 +143,6 @@ O S905W tem 4 núcleos Cortex-A53 de até 1,2 GHz e GPU Mali-450, que só faz Op
 - O kernel fica fixo na versão da imagem (por causa do driver do Wi-Fi). Para um
   kernel novo, grave uma imagem nova.
 - O controle remoto infravermelho não é usado; use controle/teclado USB.
-- Ainda não validado no hardware real (veja o aviso no topo).
 
 ## Licença
 

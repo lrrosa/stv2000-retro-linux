@@ -138,39 +138,55 @@ amixer -c 0 sset 'AIU HDMI CTRL SRC' 'I2S'
 ## Pasta de jogos pela rede (SMB)
 
 Com o cabo de rede ligado (ou o Wi-Fi configurado), a partição JOGOS fica
-compartilhada na rede local, **sem usuário nem senha**:
+compartilhada na rede local. Celular, TV e Mac entram como **convidado**, sem senha;
+o Windows pede uma vez o usuário **`gamer`** e a senha **`retro`**:
 
 - **Windows**: no Explorador de Arquivos, digite na barra de endereço
-  **`\\STV2000\JOGOS`** (ou `\\<IP>\JOGOS`). Para deixar como unidade fixa: botão
-  direito em *Este Computador → Mapear unidade de rede*.
+  **`\\STV2000\JOGOS`** (ou `\\<IP>\JOGOS`). Na janela que abre, use o usuário
+  `gamer`, a senha `retro` e marque *Lembrar minhas credenciais*. Para deixar como
+  unidade fixa: botão direito em *Este Computador → Mapear unidade de rede*.
 - **Android**: num gerenciador de arquivos com SMB (CX File Explorer, Solid Explorer,
   VLC…), adicione o servidor pelo IP como **anônimo/convidado**.
 - **macOS**: Finder → *Ir → Conectar ao Servidor* → `smb://<IP>/JOGOS` → *Convidado*.
 - **Linux**: `smb://stv2000/JOGOS` no gerenciador de arquivos.
 
+Se algum aparelho não entrar como convidado (o login *anônimo* funciona, mas um
+usuário chamado `guest` é recusado), entre com o usuário `gamer` e a senha `retro`,
+que valem em qualquer sistema.
+
 O aparelho só aceita conexões da rede local (endereços `192.168.x.x`, `10.x.x.x` e
 `172.16-31.x.x`).
 
-> [!IMPORTANT]
-> **Windows 11 24H2 ou mais novo** bloqueia pastas anônimas por padrão. A mensagem é
-> *"Você não pode acessar esta pasta compartilhada porque as políticas de segurança da
-> organização bloqueiam o acesso de convidado não autenticado"*. Para resolver sem
-> mexer na segurança do PC, guarde uma vez o usuário do aparelho no Windows. No
-> PowerShell (não precisa ser administrador), rode:
+> [!NOTE]
+> **Por que o Windows pede senha?** O Windows 11 recusa pastas de convidado: exige
+> assinatura SMB, que só existe numa sessão com usuário. Por isso o aparelho recusa a
+> conta do PC e o Windows pergunta usuário e senha, em vez de mostrar a pasta vazia ou
+> as mensagens *"…exigir assinatura SMB"* / *"…bloqueiam o acesso de convidado não
+> autenticado"*. Isso não mexe na segurança do PC.
+>
+> Para guardar o login sem a janela (ou se ela não aparecer), rode no PowerShell, sem
+> precisar de administrador:
 >
 > ```powershell
 > cmdkey /add:STV2000 /user:gamer /pass:retro
 > ```
 >
-> Depois disso, `\\STV2000\JOGOS` abre direto, sem perguntar nada. Se você acessa pelo
-> IP, use o IP no lugar de `STV2000`. Se trocar a senha do Samba no aparelho, rode o
-> `cmdkey` de novo com a senha nova.
+> O Windows guarda o login por endereço. Se você acessa pelo IP, rode também com o IP
+> no lugar de `STV2000` e repita se o IP mudar. Se trocar a senha do Samba no
+> aparelho, rode o `cmdkey` de novo com a senha nova.
 
 - O nome `STV2000` é anunciado por NetBIOS. Ele **não aparece sozinho** na seção
   *Rede* do Explorador: digite o endereço. Se o nome não for encontrado, use o IP
   (ele aparece no roteador ou em *Menu principal → Informações → Rede*).
 - Dá para copiar jogos com o aparelho no menu ou até durante um jogo. Evite apagar o
   jogo que está aberto.
+- **Coleções grandes** (milhares de jogos pequenos, como Atari ou NES) copiam bem mais
+  rápido com o cartão no leitor do PC. Pela rede, numa pasta que já tem 1.500 jogos, a
+  cópia faz cerca de 7 arquivos por segundo: a FAT32 do cartão procura nomes repetidos
+  a cada arquivo novo.
+- Depois de copiar, espere alguns segundos antes de tirar o aparelho da tomada: o que
+  chegou pela rede leva até ~3 s para ser gravado no cartão. Pelo menu (*Desligar*) é
+  sempre seguro.
 - A senha do login `gamer` na rede é separada da senha do SSH. Para trocá-la (por SSH):
   `doas smbpasswd gamer`.
 - Para desligar o compartilhamento: `doas rc-update del samba && doas rc-service samba stop`.
