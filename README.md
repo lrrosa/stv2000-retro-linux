@@ -123,6 +123,8 @@ O S905W tem 4 núcleos Cortex-A53 de até 1,2 GHz e GPU Mali-450, que só faz Op
   jogos na rede, SSH, senhas, atualizações e Wi-Fi.
 - [Hardware](docs/HARDWARE.md): componentes da placa, cadeia de boot e serial (UART).
 - [Compilar a imagem](docs/COMPILAR.md): build completo no Windows com WSL2.
+- [Adesivo para a tampa](docs/adesivo/README.md): arte de console 16-bit para imprimir
+  e colar em cima do aparelho (11 × 11 cm).
 
 ## Limitações conhecidas
 

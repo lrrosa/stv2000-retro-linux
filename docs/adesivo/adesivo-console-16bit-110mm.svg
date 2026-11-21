@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+     width="110mm" height="110mm" viewBox="0 0 110 110">
+<title>Adesivo console 16-bit 110x110 mm</title>
+<defs>
+  <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#2a2a2a"/>
+    <stop offset="0.22" stop-color="#151515"/>
+    <stop offset="1" stop-color="#060606"/>
+  </linearGradient>
+  <linearGradient id="bodySheen" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+    <stop offset="0.38" stop-color="#ffffff" stop-opacity="0.02"/>
+    <stop offset="0.40" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="disc" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#1e1e1e"/>
+    <stop offset="1" stop-color="#0f0f0f"/>
+  </radialGradient>
+  <linearGradient id="discSheen" x1="0.1" y1="0.05" x2="0.9" y2="0.95">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+    <stop offset="0.33" stop-color="#ffffff" stop-opacity="0"/>
+    <stop offset="0.70" stop-color="#ffffff" stop-opacity="0"/>
+    <stop offset="1" stop-color="#ffffff" stop-opacity="0.07"/>
+  </linearGradient>
+  <linearGradient id="lip" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#050505"/>
+    <stop offset="0.5" stop-color="#1a1a1a"/>
+    <stop offset="1" stop-color="#4a4a4a"/>
+  </linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fffbe2"/>
+    <stop offset="0.28" stop-color="#ffe27c"/>
+    <stop offset="0.50" stop-color="#d8981a"/>
+    <stop offset="0.515" stop-color="#6e4300"/>
+    <stop offset="0.56" stop-color="#ffd860"/>
+    <stop offset="0.80" stop-color="#e7a92a"/>
+    <stop offset="1" stop-color="#93600a"/>
+  </linearGradient>
+  <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#454545"/>
+    <stop offset="0.10" stop-color="#262626"/>
+    <stop offset="1" stop-color="#0c0c0c"/>
+  </linearGradient>
+  <linearGradient id="flap" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#262626"/>
+    <stop offset="1" stop-color="#0b0b0b"/>
+  </linearGradient>
+  <linearGradient id="btn" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#4c4c4c"/>
+    <stop offset="0.15" stop-color="#2c2c2c"/>
+    <stop offset="1" stop-color="#101010"/>
+  </linearGradient>
+  <linearGradient id="groove" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#000000"/>
+    <stop offset="0.6" stop-color="#080808"/>
+    <stop offset="1" stop-color="#262626"/>
+  </linearGradient>
+  <radialGradient id="ledGlow" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#ff3b22" stop-opacity="0.75"/>
+    <stop offset="1" stop-color="#ff0000" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="led" cx="0.38" cy="0.35" r="0.65">
+    <stop offset="0" stop-color="#ffd2c4"/>
+    <stop offset="0.35" stop-color="#ff3a22"/>
+    <stop offset="1" stop-color="#a00800"/>
+  </radialGradient>
+</defs>
+<g id="corpo">
+<rect x="0" y="0" width="110" height="110" rx="7" ry="7" fill="url(#body)"/>
+<rect x="0" y="0" width="110" height="110" rx="7" ry="7" fill="url(#bodySheen)"/>
+<rect x="1.8" y="1.8" width="106.4" height="106.4" rx="5.4" ry="5.4" fill="none" stroke="#000" stroke-width="0.6"/>
+<rect x="2.3" y="2.3" width="105.4" height="105.4" rx="5" ry="5" fill="none" stroke="#3a3a3a" stroke-width="0.25"/>
+</g>
+<g id="disco">
+<circle cx="55" cy="60" r="38.4" fill="#000" opacity="0.75"/>
+<circle cx="55" cy="60" r="37.9" fill="none" stroke="url(#lip)" stroke-width="0.9"/>
+<circle cx="55" cy="60" r="37" fill="url(#disc)"/>
+<circle cx="55" cy="60" r="36" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="35.58" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="34.68" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="34.26" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="33.36" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="32.94" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="32.04" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="31.62" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="30.72" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="30.3" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="29.4" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="28.98" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="28.08" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="27.66" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="26.76" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="26.34" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="25.44" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="25.02" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="24.12" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="23.7" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="22.8" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="22.38" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="21.48" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="21.06" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="20.16" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="19.74" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="18.84" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="18.42" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="17.52" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="17.1" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="16.2" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="15.78" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="14.88" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="14.46" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="13.56" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="13.14" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="12.24" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="11.82" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="10.92" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="10.5" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="9.6" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="9.18" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="8.28" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="7.86" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="6.96" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="6.54" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="5.64" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="5.22" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="4.32" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="3.9" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="3" fill="none" stroke="#000" stroke-width="0.55"/>
+<circle cx="55" cy="60" r="2.58" fill="none" stroke="#3c3c3c" stroke-width="0.2"/>
+<circle cx="55" cy="60" r="37" fill="url(#discSheen)"/>
+</g>
+<g id="slot-cartucho">
+<rect x="24.6" y="30.7" width="62" height="16.5" rx="2.4" fill="#000" opacity="0.8"/>
+<rect x="24" y="29.5" width="62" height="16.5" rx="2.4" fill="url(#frame)" stroke="#000" stroke-width="0.35"/>
+<line x1="26" y1="33.7" x2="26" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<line x1="84" y1="33.7" x2="84" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<line x1="26.9" y1="33.7" x2="26.9" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<line x1="83.1" y1="33.7" x2="83.1" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<line x1="27.8" y1="33.7" x2="27.8" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<line x1="82.2" y1="33.7" x2="82.2" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<line x1="28.7" y1="33.7" x2="28.7" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<line x1="81.3" y1="33.7" x2="81.3" y2="41.8" stroke="#000" stroke-width="0.35"/>
+<rect x="30.2" y="32.3" width="49.6" height="10.9" rx="1.3" fill="#080808" stroke="#353535" stroke-width="0.25"/>
+<rect x="31" y="33.1" width="48" height="9.3" rx="0.7" fill="#000"/>
+<rect x="31.6" y="33.6" width="46.8" height="4.14" fill="url(#flap)"/>
+<rect x="31.6" y="38.19" width="46.8" height="3.71" fill="#0e0e0e"/>
+<line x1="31.6" y1="33.75" x2="78.4" y2="33.75" stroke="#3d3d3d" stroke-width="0.2"/>
+<path d="M 27.1 31 L 29.3 31 L 28.2 32.5 Z" fill="#8a8a8a"/>
+<path d="M 80.7 31 L 82.9 31 L 81.8 32.5 Z" fill="#8a8a8a"/>
+</g>
+<g id="logo-16bit" transform="translate(55,76) scale(1.12,1)">
+<defs><clipPath id="clip16" clipPathUnits="userSpaceOnUse"><text x="0" y="0" text-anchor="middle" style="font-family:'Arial Black';font-weight:900;font-size:15.5px;letter-spacing:0.3">16-BIT</text></clipPath></defs>
+<g transform="translate(0.45,0.7)" style="fill:#000;stroke:#000;stroke-width:1.4;stroke-linejoin:round"><text x="0" y="0" text-anchor="middle" style="font-family:'Arial Black';font-weight:900;font-size:15.5px;letter-spacing:0.3">16-BIT</text></g>
+<g style="fill:url(#gold);stroke:#1c1100;stroke-width:0.55;stroke-linejoin:round;paint-order:stroke fill markers"><text x="0" y="0" text-anchor="middle" style="font-family:'Arial Black';font-weight:900;font-size:15.5px;letter-spacing:0.3">16-BIT</text></g>
+<g clip-path="url(#clip16)"><rect x="-40" y="-4.6" width="80" height="0.3" fill="#1c1100" opacity="0.85"/><rect x="-40" y="-3.1" width="80" height="0.42" fill="#1c1100" opacity="0.85"/><rect x="-40" y="-1.6" width="80" height="0.55" fill="#1c1100" opacity="0.85"/><rect x="-40" y="-10.6" width="80" height="0.35" fill="#ffffff" opacity="0.7"/></g>
+</g>
+<text x="55" y="83.2" text-anchor="middle" style="font-family:Arial;font-weight:bold;font-size:2.6px;letter-spacing:0.9;fill:#d0d0d0">ARCADE QUALITY GRAPHICS</text>
+<g id="marca">
+<g transform="translate(8,12.6) skewX(-10)">
+<text x="0" y="0" style="font-family:'Arial Black';font-weight:900;font-size:6.4px;letter-spacing:0.35;fill:#000;stroke:#000;stroke-width:0.9" transform="translate(0.3,0.4)">STV-2000</text>
+<text x="0" y="0" style="font-family:'Arial Black';font-weight:900;font-size:6.4px;letter-spacing:0.35;fill:#f4f4f4">STV-2000</text>
+</g>
+<rect x="8" y="14.5" width="35.2" height="0.85" fill="#e3201b"/>
+<text x="8" y="18.2" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.3px;letter-spacing:0.62">RETRO GAME SYSTEM</text>
+</g>
+<g id="controles">
+<circle cx="10.2" cy="87.4" r="3.4" fill="url(#ledGlow)"/>
+<circle cx="10.2" cy="87.4" r="1.35" fill="url(#led)" stroke="#2a0000" stroke-width="0.2"/>
+<text x="13.4" y="88.25" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.3px">POWER</text>
+<rect x="7" y="92" width="21" height="3.6" rx="1.8" fill="url(#groove)" stroke="#000" stroke-width="0.3"/>
+<rect x="22.4" y="91.3" width="5.6" height="6.4" rx="1" fill="#000" opacity="0.8"/>
+<rect x="22" y="90.6" width="5.6" height="6.4" rx="1" fill="url(#btn)" stroke="#000" stroke-width="0.3"/>
+<line x1="23.6" y1="92" x2="23.6" y2="95.6" stroke="#000" stroke-width="0.35"/>
+<line x1="23.9" y1="92" x2="23.9" y2="95.6" stroke="#4a4a4a" stroke-width="0.15"/>
+<line x1="24.8" y1="92" x2="24.8" y2="95.6" stroke="#000" stroke-width="0.35"/>
+<line x1="25.1" y1="92" x2="25.1" y2="95.6" stroke="#4a4a4a" stroke-width="0.15"/>
+<line x1="26" y1="92" x2="26" y2="95.6" stroke="#000" stroke-width="0.35"/>
+<line x1="26.3" y1="92" x2="26.3" y2="95.6" stroke="#4a4a4a" stroke-width="0.15"/>
+<text x="7.6" y="100.2" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.1px">OFF</text>
+<text x="27.4" y="100.2" text-anchor="end" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.1px">ON</text>
+<text x="102" y="8.3" text-anchor="end" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.3px">VOLUME</text>
+<rect x="81" y="12.4" width="21" height="3.6" rx="1.8" fill="url(#groove)" stroke="#000" stroke-width="0.3"/>
+<rect x="91.29" y="11.7" width="5.6" height="6.4" rx="1" fill="#000" opacity="0.8"/>
+<rect x="90.89" y="11" width="5.6" height="6.4" rx="1" fill="url(#btn)" stroke="#000" stroke-width="0.3"/>
+<line x1="92.49" y1="12.4" x2="92.49" y2="16" stroke="#000" stroke-width="0.35"/>
+<line x1="92.79" y1="12.4" x2="92.79" y2="16" stroke="#4a4a4a" stroke-width="0.15"/>
+<line x1="93.69" y1="12.4" x2="93.69" y2="16" stroke="#000" stroke-width="0.35"/>
+<line x1="93.99" y1="12.4" x2="93.99" y2="16" stroke="#4a4a4a" stroke-width="0.15"/>
+<line x1="94.89" y1="12.4" x2="94.89" y2="16" stroke="#000" stroke-width="0.35"/>
+<line x1="95.19" y1="12.4" x2="95.19" y2="16" stroke="#4a4a4a" stroke-width="0.15"/>
+<text x="81.6" y="20.6" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.1px">MIN</text>
+<text x="101.4" y="20.6" text-anchor="end" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.1px">MAX</text>
+<rect x="83.5" y="89.3" width="19" height="7.4" rx="1.8" fill="#000" opacity="0.85"/>
+<rect x="83" y="88.4" width="19" height="7.4" rx="1.8" fill="url(#btn)" stroke="#000" stroke-width="0.35"/>
+<line x1="84.6" y1="88.95" x2="100.4" y2="88.95" stroke="#6a6a6a" stroke-width="0.22"/>
+<rect x="86" y="91" width="13" height="2.2" rx="0.6" fill="#000" opacity="0.35"/>
+<text x="92.5" y="100.2" text-anchor="middle" style="font-family:Arial;font-weight:bold;fill:#b9b9b9;letter-spacing:0.25;font-size:2.3px">RESET</text>
+</g>
+</svg>
