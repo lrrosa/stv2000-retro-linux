@@ -57,10 +57,13 @@ Android. Não precisa mais do palito.
 
 Próximos passos:
 
-- **Jogos**: com o cabo de rede ligado, copie-os do PC para `\\STV2000\JOGOS`, sem
-  senha. Ou desligue e copie pelo cartão. Veja [Colocando jogos](CONFIGURACAO.md#colocando-jogos).
-- **Usuário e senha** (SSH/SFTP): **`gamer`** / **`retro`**. O menu de jogos e a pasta
-  na rede não pedem senha. Veja [Acesso](../README.md#acesso-usuário-e-senha).
+- **Jogos**: com o aparelho na rede (cabo ou Wi-Fi), abra `\\STV2000\JOGOS` no PC e
+  copie os jogos. Na primeira vez o Windows pede usuário e senha: **`gamer`** /
+  **`retro`** (marque *Lembrar minhas credenciais*). Celular, TV e Mac entram como
+  convidado, sem senha. Ou desligue e copie pelo cartão. Veja
+  [Colocando jogos](CONFIGURACAO.md#colocando-jogos).
+- **Usuário e senha** (SSH/SFTP e pasta na rede pelo Windows): **`gamer`** / **`retro`**.
+  O menu de jogos não pede senha. Veja [Acesso](../README.md#acesso-usuário-e-senha).
 
 ## 4. Voltar ao Android
 

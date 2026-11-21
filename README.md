@@ -160,11 +160,13 @@ X11) for the Brazilian **Aquário STV-2000** Android TV box (Amlogic S905W, 1 GB
 p281 reference board). It boots from microSD through the stock Amlogic U-Boot
 (`aml_autoscript`/`s905_autoscript`, toothpick method), leaving Android untouched. A FAT32
 `JOGOS` partition holds ROMs, BIOS and saves. It is also shared on the LAN as
-`\\STV2000\JOGOS` (Samba, guest access), and RetroArch playlists are regenerated
+`\\STV2000\JOGOS` (Samba: phones, TVs and Macs connect as guest; Windows 11, which
+requires SMB signing, asks once for `gamer` / `retro`), and RetroArch playlists are regenerated
 automatically when it changes. SSH login: `gamer` / `retro`. The UI is a Lakka-style XMB setup: one tab per system
 with its own icon and wallpaper, on-demand box art, favorites/history, trimmed menus and
 Shutdown/Reboot entries (small RetroArch patch). The internal SSV6051P Wi-Fi works
 through an out-of-tree community driver (eloirotava/6051) plus an out-of-tree `clk-pwm`
 clock module (Alpine's kernel ships it disabled); it is 2.4 GHz only and reached
-~30–37 Mbit/s on the device, configured from `JOGOS\wifi.txt`. Status: **work in progress, not yet tested on real hardware**. Build instructions
+~30–37 Mbit/s on the device, configured from `JOGOS\wifi.txt`. Status: **tested on the device**; a ready image is in the
+[latest release](../../releases/latest). Build instructions
 are in [docs/COMPILAR.md](docs/COMPILAR.md) (WSL2/Ubuntu, qemu-user).

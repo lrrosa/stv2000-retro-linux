@@ -16,7 +16,7 @@ PKGS=(
     tzdata chrony openssh-server openssh-sftp-server doas nano
     # Wi-Fi (driver do SSV6051P vem do 35-wifi.sh; serve também para dongles USB)
     wpa_supplicant wireless-regdb iw
-    # compartilhamento da partição JOGOS na rede (\\STV2000\JOGOS, anônimo)
+    # compartilhamento da partição JOGOS na rede (\\STV2000\JOGOS: convidado ou login gamer)
     samba-server samba-server-openrc samba-common-tools
     # gráfico (Mali-450 = driver lima do Mesa, saída direta em KMS) e áudio
     mesa-dri-gallium mesa-egl mesa-gles mesa-gbm libdrm eudev-libs zlib libstdc++
