@@ -13,10 +13,11 @@ Alpine podem ser obtidos, com fontes, em <https://pkgs.alpinelinux.org> e
 | Mesa (driver lima) | pacote Alpine | MIT |
 | Samba (compartilhamento `\\STV2000\JOGOS`) | pacote Alpine | GPL-3.0 |
 | U-Boot (u-boot.ext) | <https://github.com/u-boot/u-boot>, compilado | GPL-2.0+ |
-| RetroArch 1.22.2 | <https://github.com/libretro/RetroArch>, compilado com o patch em `patches/retroarch` | GPL-3.0 |
+| RetroArch 1.22.2 | <https://github.com/libretro/RetroArch>, compilado com os patches em `patches/retroarch` | GPL-3.0 |
 | Driver Wi-Fi SSV6051P (`ssv6051.ko`) | <https://github.com/eloirotava/6051> (código da iComm/South Silicon Valley, portado pela comunidade), compilado | GPL-3.0 ou posterior (cabeçalhos dos fontes) |
 | Firmware `ssv6051-sw.bin` e `ssv6051-wifi.cfg` | mesmo repositório (firmware do fabricante, também distribuído pelo Armbian) | do fabricante, redistribuído como está |
 | retroarch-assets, joypad-autoconfig, core-info, database | pacotes Alpine | ver cada projeto libretro (retroarch-assets: CC-BY 4.0) |
+| Índices de nomes por CRC (`/usr/share/stv2000/nomes`) | gerados no build por `scripts/gen-nomes-crc.py` a partir do libretro-database | a do libretro-database |
 | Fundos do Menu principal, Histórico e Favoritos | gerados no build por `scripts/gen-fundos.py` com as silhuetas do tema *monochrome* do retroarch-assets | CC-BY 4.0 (obra derivada) |
 | PCSX ReARMed | <https://github.com/libretro/pcsx_rearmed>, compilado | GPL-2.0 |
 | Beetle PCE Fast | <https://github.com/libretro/beetle-pce-fast-libretro>, compilado | GPL-2.0 |

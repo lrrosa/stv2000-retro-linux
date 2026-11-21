@@ -79,7 +79,7 @@ próprio emulador, sem carregar um segundo programa na memória de 1 GB.
 | ![Menu principal](docs/telas/menu-principal.png) | ![Aba do Super Nintendo](docs/telas/sistema-snes.png) |
 | Menu principal: ícones coloridos e fundo com tema de jogos | Aba de um sistema: os jogos com o fundo do console |
 | ![Menu do jogo](docs/telas/menu-do-jogo.png) | ![Favoritos](docs/telas/favoritos.png) |
-| Menu do jogo: Executar, favoritos, informações | Favoritos e Histórico têm fundos próprios |
+| Menu do jogo: Executar, favoritos, informações e opções | Favoritos e Histórico têm fundos próprios |
 | ![Tela de abertura](docs/telas/abertura.png) | ![Sem jogos](docs/telas/sem-jogos.png) |
 | Tela de abertura no boot, sem o texto do Linux | Sem nenhum jogo: como copiar pela rede ou pelo cartão |
 

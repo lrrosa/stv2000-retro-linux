@@ -1,0 +1,179 @@
+diff --git a/tasks/task_pl_thumbnail_download.c b/tasks/task_pl_thumbnail_download.c
+index 705f804..360e32b 100644
+--- a/tasks/task_pl_thumbnail_download.c
++++ b/tasks/task_pl_thumbnail_download.c
+@@ -44,6 +44,10 @@
+ #endif
+ #endif
+ 
++/* STV-2000: espelho das capas no GitHub (mesmo conteúdo do servidor do
++ * libretro), usado quando thumbnails.libretro.com falha ou não tem a imagem */
++#define STV_THUMBNAILS_MIRROR_URL "https://raw.githubusercontent.com/libretro-thumbnails"
++
+ enum pl_thumb_status
+ {
+    PL_THUMB_BEGIN = 0,
+@@ -57,7 +61,9 @@ enum pl_thumb_flags
+    PL_THUMB_FLAG_OVERWRITE          = (1 << 0),
+    PL_THUMB_FLAG_RIGHT_THUMB_EXISTS = (1 << 1),
+    PL_THUMB_FLAG_LEFT_THUMB_EXISTS  = (1 << 2),
+-   PL_THUMB_FLAG_HTTP_TASK_COMPLETE = (1 << 3)
++   PL_THUMB_FLAG_HTTP_TASK_COMPLETE = (1 << 3),
++   /* STV-2000: o download que terminou falhou (o handler tenta o espelho) */
++   PL_THUMB_FLAG_STV_FAILED         = (1 << 4)
+ };
+ 
+ typedef struct pl_thumb_handle
+@@ -68,6 +74,9 @@ typedef struct pl_thumb_handle
+    playlist_t *playlist;
+    gfx_thumbnail_path_data_t *thumbnail_path_data;
+    retro_task_t *http_task;
++   /* STV-2000: 2ª tentativa, no espelho (url vazio = nenhuma) */
++   char stv_mirror_url[2048];
++   char stv_mirror_path[PATH_MAX_LENGTH];
+ 
+    playlist_config_t playlist_config; /* size_t alignment */
+ 
+@@ -184,6 +193,7 @@ static bool task_pl_thumbnail_get_thumbnail_paths(
+    const char *system      = NULL;
+ 
+    content_dir[0]          = '\0';
++   pl_thumb->stv_mirror_url[0] = '\0';
+ 
+    if (!pl_thumb->thumbnail_path_data)
+       return false;
+@@ -249,6 +259,23 @@ static bool task_pl_thumbnail_get_thumbnail_paths(
+    }
+ 
+    net_http_urlencode_full(s, raw_url, len);
++
++   /* STV-2000: no GitHub cada sistema é um repositório com "_" no lugar
++    * dos espaços, ex.: libretro-thumbnails/Sega_-_Mega_Drive_-_Genesis */
++   {
++      char repo[256];
++      char *c;
++      strlcpy(repo, system_name, sizeof(repo));
++      for (c = repo; *c; c++)
++         if (*c == ' ')
++            *c = '_';
++      snprintf(raw_url, raw_url_len, "%s/%s/master/%s/%s",
++            STV_THUMBNAILS_MIRROR_URL, repo, sub_dir, img_name);
++      net_http_urlencode_full(pl_thumb->stv_mirror_url, raw_url,
++            sizeof(pl_thumb->stv_mirror_url));
++      strlcpy(pl_thumb->stv_mirror_path, path,
++            sizeof(pl_thumb->stv_mirror_path));
++   }
+    free(raw_url);
+ 
+    return !string_is_empty(s);
+@@ -264,18 +291,18 @@ void cb_http_task_download_pl_thumbnail(
+    http_transfer_data_t *data  = (http_transfer_data_t*)task_data;
+    file_transfer_t *transf     = (file_transfer_t*)user_data;
+    pl_thumb_handle_t *pl_thumb = NULL;
++   bool stv_ok                 = false;
+ 
+-   /* Update pl_thumb task status
+-    * > Do this first, to minimise the risk of hanging
+-    *   the parent task in the event of an http error */
++   /* STV-2000: o status da tarefa (PL_THUMB_FLAG_HTTP_TASK_COMPLETE) agora
++    * é marcado em 'finish', por onde todo caminho passa. O handler roda em
++    * outra thread e segue em frente assim que vê o sinal (pode até liberar
++    * pl_thumb), então o sinal tem de ser o último acesso a pl_thumb aqui. */
+    if (!transf)
+       goto finish;
+ 
+    if (!(pl_thumb = (pl_thumb_handle_t*)transf->user_data))
+       goto finish;
+ 
+-   pl_thumb->flags |= PL_THUMB_FLAG_HTTP_TASK_COMPLETE;
+-
+    /* Remaining sanity checks... */
+    if (!data || !data->data || string_is_empty(transf->path))
+       goto finish;
+@@ -303,9 +330,16 @@ void cb_http_task_download_pl_thumbnail(
+       err = "Write failed.";
+       goto finish;
+    }
++   stv_ok = true;
+ 
+ finish:
+ 
++   /* STV-2000: avisa o handler por último; se falhou, ele tenta o espelho */
++   if (pl_thumb)
++      pl_thumb->flags |= stv_ok
++         ?  PL_THUMB_FLAG_HTTP_TASK_COMPLETE
++         : (PL_THUMB_FLAG_HTTP_TASK_COMPLETE | PL_THUMB_FLAG_STV_FAILED);
++
+    if (!string_is_empty(err))
+       RARCH_ERR("[Thumbnail] Download \"%s\" failed: %s\n",
+             (transf ? transf->path : "unknown"), err);
+@@ -362,6 +396,47 @@ static void download_pl_thumbnail(pl_thumb_handle_t *pl_thumb)
+    }
+ }
+ 
++/* STV-2000: se o download que acabou de terminar falhou, tenta o mesmo
++ * arquivo uma vez no espelho do GitHub. Roda no handler da tarefa (mesma
++ * thread de download_pl_thumbnail), nunca no callback do HTTP.
++ * Retorna true se iniciou uma nova transferência. */
++static bool stv_try_mirror(pl_thumb_handle_t *pl_thumb)
++{
++   char url[2048];
++   file_transfer_t *transf = NULL;
++   bool failed             = (pl_thumb->flags & PL_THUMB_FLAG_STV_FAILED) != 0;
++
++   pl_thumb->flags        &= ~PL_THUMB_FLAG_STV_FAILED;
++
++   if (     !failed
++         || string_is_empty(pl_thumb->stv_mirror_url)
++         || string_is_empty(pl_thumb->stv_mirror_path))
++      return false;
++
++   strlcpy(url, pl_thumb->stv_mirror_url, sizeof(url));
++   pl_thumb->stv_mirror_url[0] = '\0'; /* uma tentativa só */
++
++   if (!(transf = (file_transfer_t*)malloc(sizeof(file_transfer_t))))
++      return false;
++
++   transf->enum_idx  = MSG_UNKNOWN;
++   transf->user_data = (void*)pl_thumb;
++   strlcpy(transf->path, pl_thumb->stv_mirror_path, sizeof(transf->path));
++
++   RARCH_LOG("[Thumbnail] Trying mirror \"%s\".\n", url);
++
++   pl_thumb->flags  &= ~PL_THUMB_FLAG_HTTP_TASK_COMPLETE;
++   /* Se não der para enfileirar, o callback não é chamado nem libera transf */
++   if (!(pl_thumb->http_task = (retro_task_t*)task_push_http_transfer_file(
++         url, true, NULL, cb_http_task_download_pl_thumbnail, transf)))
++   {
++      pl_thumb->flags |= PL_THUMB_FLAG_HTTP_TASK_COMPLETE;
++      free(transf);
++      return false;
++   }
++   return true;
++}
++
+ static void free_pl_thumb_handle(pl_thumb_handle_t *pl_thumb)
+ {
+    if (pl_thumb->system)
+@@ -490,6 +565,10 @@ static void task_pl_thumbnail_download_handler(retro_task_t *task)
+ 
+          pl_thumb->http_task = NULL;
+ 
++         /* STV-2000: falhou no servidor principal -> tenta o espelho */
++         if (stv_try_mirror(pl_thumb))
++            break;
++
+          /* Check whether all thumbnail types have been processed */
+          /* TODO/FIXME - turn 3 into 4 when we re-enable Named_Logos for fetching */
+          if (pl_thumb->type_idx > 3)
+@@ -805,6 +884,10 @@ static void task_pl_entry_thumbnail_download_handler(retro_task_t *task)
+ 
+             pl_thumb->http_task = NULL;
+ 
++            /* STV-2000: falhou no servidor principal -> tenta o espelho */
++            if (stv_try_mirror(pl_thumb))
++               break;
++
+             /* Check whether all thumbnail types have been processed */
+             if (pl_thumb->type_idx > 3)
+             {

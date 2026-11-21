@@ -3,18 +3,35 @@
 # Cada pasta em /media/jogos/roms/<sistema> vira uma lista com o core certo
 # (tabela em /usr/share/stv2000/systems.conf). Roda no boot, antes do RetroArch, e a cada
 # 15 s enquanto ele está aberto (jogos copiados pela rede aparecem ao reabrir a aba).
-# O nome mostrado é o do arquivo, sem o que estiver entre parênteses/colchetes, menos a
-# região e o disco: "Sonic (USA, Europe) (Rev 1).md" aparece como "Sonic (USA, Europe)".
-# O nome completo continua valendo para achar a capa no servidor libretro.
+# Nome oficial: nos sistemas de cartucho, cada ROM é reconhecida pelo CRC32 na base de
+# dados do libretro (índices em /usr/share/stv2000/nomes, gerados no build). Assim
+# "Sonic The Hedgehog 2 (W) (REV01) [!].gen" vira "Sonic The Hedgehog 2 (World) (Rev A)",
+# que é também o nome da capa no servidor do libretro. Sem reconhecimento, vale o nome
+# do arquivo. Os CRCs ficam em ~/.cache/stv-crc.txt: só arquivos novos ou alterados são
+# lidos, no máximo ~10 s por execução (o resto fica para a próxima).
+# O nome mostrado esconde o que está entre parênteses/colchetes, menos a região e o
+# disco: "Sonic (USA, Europe) (Rev 1)" aparece como "Sonic (USA, Europe)".
 # O core escolhido em "Definir núcleo" e o nome trocado em "Renomear" são mantidos.
-# Uso: stv-playlists [-f]   (-f força regerar mesmo sem mudanças)
+# Uso: stv-playlists [-f] [-r]
+#   -f  regera as listas mesmo sem mudanças
+#   -r  rápido: não lê CRCs novos (no boot, para o menu abrir logo)
 JOGOS="${JOGOS:-/media/jogos}"
 ROMS="$JOGOS/roms"
 CONF=/usr/share/stv2000/systems.conf
+NOMES="${NOMES:-/usr/share/stv2000/nomes}"
 CORES=/usr/lib/libretro
 INFO=/usr/share/libretro/info
 PL="$HOME/.config/retroarch/playlists"
 STAMP="$HOME/.cache/stv-playlists.sig"
+CRCS="$HOME/.cache/stv-crc.txt"
+TMP="${TMPDIR:-/tmp}/stv-playlists-$(id -u)"   # /tmp é tmpfs: não gasta o cartão SD
+LIMITE_S=10          # tempo máximo lendo CRCs por execução
+T=$(printf '\t')
+
+forcar=0; rapido=0
+for a in "$@"; do
+    case "$a" in -f) forcar=1 ;; -r) rapido=1 ;; esac
+done
 
 [ -d "$ROMS" ] || { echo "stv-playlists: $ROMS não existe"; exit 0; }
 mkdir -p "$PL" "${STAMP%/*}"
@@ -22,9 +39,72 @@ mkdir -p "$PL" "${STAMP%/*}"
 exec 9>"${STAMP%/*}/stv-playlists.lock"
 flock -n 9 || exit 0
 
-# assinatura: arquivos + tabela + este script (uma versão nova regera as listas)
-sig=$( { find "$ROMS" -type f 2>/dev/null | sort; cat "$CONF" "$0"; } | md5sum | cut -d' ' -f1)
-if [ "$1" != "-f" ] && [ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$sig" ]; then
+# CRC32 (8 dígitos hex) do arquivo a partir do byte $2 (0 = do início): o gzip grava o
+# CRC32 dos dados nos 8 bytes finais
+crc_arquivo() {
+    if [ "${2:-0}" -gt 0 ]; then tail -c +"$(($2 + 1))" "$1"; else cat "$1"; fi |
+        gzip -1c | tail -c 8 | od -An -tx4 -N4 | tr -d ' \n'
+}
+# CRC32 da ROM dentro de um .zip: vem pronto no cabeçalho local do primeiro arquivo
+crc_zip() {
+    [ "$(od -An -tx1 -N4 "$1" | tr -d ' \n')" = 504b0304 ] || { printf '%s' -; return; }
+    c=$(od -An -tx4 -j14 -N4 "$1" | tr -d ' \n')
+    [ "$c" != 00000000 ] ||
+        c=$(unzip -p "$1" 2>/dev/null | gzip -1c | tail -c 8 | od -An -tx4 -N4 | tr -d ' \n')
+    printf %s "$c"
+}
+# "crc[,crc sem o cabeçalho]" de uma ROM (tamanho em $2); "-" quando não dá para ler
+crcs_de() {
+    ext=$(printf %s "${1##*.}" | tr 'A-Z' 'a-z')
+    case "$ext" in
+        zip) crc_zip "$1"; return ;;
+        7z|cue|chd|iso|m3u|pbp) printf '%s' -; return ;;
+    esac
+    c=$(crc_arquivo "$1")
+    pula=0
+    case "$ext" in
+        nes) pula=16 ;;                                  # cabeçalho iNES
+        lnx) pula=64 ;;
+        a78) pula=128 ;;
+        smc|sfc|swc|fig) [ $(($2 % 1024)) -eq 512 ] && pula=512 ;;   # copiadora
+    esac
+    [ "$pula" -gt 0 ] && [ "$2" -gt "$pula" ] && c="$c,$(crc_arquivo "$1" "$pula")"
+    printf %s "$c"
+}
+
+# Atualiza o cache de CRCs (crc<TAB>tamanho<TAB>data<TAB>caminho) dos sistemas que têm
+# índice de nomes; arquivos acima de 64 MB (imagens de CD) ficam de fora.
+atualizar_crcs() {
+    grep -v '^#' "$CONF" | while IFS='|' read -r dir db core exts desc bios; do
+        [ -n "$dir" ] && [ -f "$NOMES/$db.tsv" ] && [ -d "$ROMS/$dir" ] || continue
+        find "$ROMS/$dir" -type f -size -65537k -exec stat -c "%s$T%Y$T%n" {} + 2>/dev/null |
+            awk -F'\t' -v exts="$exts" '
+                BEGIN { n = split(exts, e, " "); for (i = 1; i <= n; i++) ok[e[i]] = 1 }
+                { f = $3; sub(/.*\//, "", f); if (f ~ /^[._]/ || f !~ /\./) next
+                  x = f; sub(/.*\./, "", x); if (tolower(x) in ok) print }'
+    done > "$TMP.lista"
+    # reaproveita o que não mudou; o resto vai para a fila
+    : > "$TMP.novo"; : > "$TMP.fila"
+    awk -F'\t' -v cache="$CRCS" -v novo="$TMP.novo" -v fila="$TMP.fila" '
+        BEGIN { while ((getline l < cache) > 0) { k = l; sub(/^[^\t]*\t/, "", k); v[k] = l } }
+        { if ($0 in v) print v[$0] > novo; else print > fila }' "$TMP.lista"
+    if [ "$rapido" = 0 ] && [ -s "$TMP.fila" ]; then
+        inicio=$(date +%s)
+        while IFS="$T" read -r tam data arq; do
+            [ $(($(date +%s) - inicio)) -lt "$LIMITE_S" ] || break
+            printf '%s\t%s\t%s\t%s\n' "$(crcs_de "$arq" "$tam")" "$tam" "$data" "$arq" >> "$TMP.novo"
+        done < "$TMP.fila"
+    fi
+    # só regrava o cache (no cartão) quando ele muda
+    cmp -s "$TMP.novo" "$CRCS" 2>/dev/null || cp "$TMP.novo" "$CRCS"
+    rm -f "$TMP.lista" "$TMP.fila" "$TMP.novo"
+}
+atualizar_crcs
+
+# assinatura: arquivos + CRCs + tabela + este script (uma versão nova regera as listas)
+sig=$( { find "$ROMS" -type f 2>/dev/null | sort; cat "$CRCS" "$CONF" "$0" 2>/dev/null; ls "$NOMES" 2>/dev/null; } |
+    md5sum | cut -d' ' -f1)
+if [ "$forcar" = 0 ] && [ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$sig" ]; then
     exit 0
 fi
 
@@ -40,7 +120,7 @@ grep -v '^#' "$CONF" | while IFS='|' read -r dir db core exts desc bios; do
     [ -n "$nome" ] || nome="$core"
     find "$ROMS/$dir" -type f 2>/dev/null | sort | awk \
         -v exts="$exts" -v core="$CORES/${core}_libretro.so" -v cname="$nome" -v db="$db.lpl" \
-        -v sys="$dir" -v out="$out.tmp" -v velho="$out" '
+        -v sys="$dir" -v out="$out.tmp" -v velho="$out" -v indice="$NOMES/$db.tsv" -v crcs="$CRCS" '
     BEGIN {
         n = split(exts, e, " "); for (i = 1; i <= n; i++) ok[e[i]] = 1
         # arquivos de BIOS/sistema de arcade que não são jogos
@@ -56,6 +136,15 @@ grep -v '^#' "$CONF" | while IFS='|' read -r dir db core exts desc bios; do
             else if (p != "" && line ~ /^[ \t]*"core_name": "/) ocname[p] = val(line)
         }
         close(velho)
+        # nomes oficiais (crc -> nome) e CRCs já lidos (caminho -> "crc[,crc]")
+        while ((getline line < indice) > 0) {
+            k = index(line, "\t"); if (k) oficial[substr(line, 1, k - 1)] = substr(line, k + 1)
+        }
+        close(indice)
+        while ((getline line < crcs) > 0) {
+            split(line, c, "\t"); if (c[1] != "-") crcde[c[4]] = c[1]
+        }
+        close(crcs)
     }
     function esc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); gsub(/\t/, " ", s); return s }
     # valor de uma linha  "chave": "valor",  do JSON de volta para texto
@@ -92,21 +181,31 @@ grep -v '^#' "$CONF" | while IFS='|' read -r dir db core exts desc bios; do
         if (total == 0) exit
         printf "{\n  \"version\": \"1.5\",\n  \"default_core_path\": \"%s\",\n  \"default_core_name\": \"%s\",\n", esc(core), esc(cname) > out
         printf "  \"label_display_mode\": 6,\n  \"right_thumbnail_mode\": 0,\n  \"left_thumbnail_mode\": 0,\n  \"sort_mode\": 0,\n  \"items\": [" > out
-        first = 1
+        first = 1; reconhecidos = 0
         for (i = 1; i <= cnt; i++) {
             f = files[i]
             if (f in ref) continue
-            lab = labels[i]; cp = core; cn = cname
-            if (olab[f] != "") lab = olab[f]
+            # nome oficial pelo CRC (com e sem cabeçalho)
+            ofi = ""; crc = "DETECT"
+            if (f in crcde) {
+                n = split(crcde[f], cs, ",")
+                for (j = 1; j <= n; j++) if (cs[j] in oficial) {
+                    ofi = oficial[cs[j]]; crc = toupper(cs[j]) "|crc"; break
+                }
+            }
+            if (ofi != "") reconhecidos++
+            lab = (ofi != "" ? ofi : labels[i]); cp = core; cn = cname
+            # nome diferente do arquivo e do oficial = trocado em "Renomear"
+            if (olab[f] != "" && olab[f] != labels[i] && olab[f] != ofi) lab = olab[f]
             if (ocore[f] != "" && ocore[f] != "DETECT" && ocore[f] != odef && ocname[f] != "") {
                 cp = ocore[f]; cn = ocname[f]
             }
-            printf "%s\n    {\n      \"path\": \"%s\",\n      \"label\": \"%s\",\n      \"core_path\": \"%s\",\n      \"core_name\": \"%s\",\n      \"crc32\": \"DETECT\",\n      \"db_name\": \"%s\"\n    }", (first ? "" : ","), esc(f), esc(lab), esc(cp), esc(cn), esc(db) > out
+            printf "%s\n    {\n      \"path\": \"%s\",\n      \"label\": \"%s\",\n      \"core_path\": \"%s\",\n      \"core_name\": \"%s\",\n      \"crc32\": \"%s\",\n      \"db_name\": \"%s\"\n    }", (first ? "" : ","), esc(f), esc(lab), esc(cp), esc(cn), crc, esc(db) > out
             first = 0
         }
         printf "\n  ]\n}\n" > out
         close(out)
-        printf "%-13s %d jogo(s)\n", sys, total
+        printf "%-13s %d jogo(s), %d reconhecido(s) pelo CRC\n", sys, total, reconhecidos
     }'
     # troca de uma vez: o RetroArch nunca lê uma lista pela metade
     if [ -s "$out.tmp" ]; then mv -f "$out.tmp" "$out"; else rm -f "$out" "$out.tmp"; fi

@@ -1,0 +1,43 @@
+diff --git a/menu/cbs/menu_cbs_left.c b/menu/cbs/menu_cbs_left.c
+index afd6de0..7cffe20 100644
+--- a/menu/cbs/menu_cbs_left.c
++++ b/menu/cbs/menu_cbs_left.c
+@@ -243,6 +243,16 @@ static int action_left_scroll(unsigned type, const char *label,
+    return 0;
+ }
+ 
++/* STV-2000: nas telas de um jogo, ← volta, como sugere a seta "<" do XMB.
++ * Segurar ← não repete, para não sair da lista e trocar de aba sem querer. */
++static int action_left_stv_back(unsigned type, const char *label,
++      bool wraparound)
++{
++   if (menu_state_get_ptr()->scroll.acceleration > 0)
++      return 0;
++   return action_cancel_pop_default(NULL, NULL, 0, 0);
++}
++
+ static int action_left_mainmenu(unsigned type, const char *label,
+       bool wraparound)
+ {
+@@ -1265,6 +1275,21 @@ int menu_cbs_init_bind_left(menu_file_list_cbs_t *cbs,
+ 
+    BIND_ACTION_LEFT(cbs, bind_left_generic);
+ 
++   /* STV-2000: ← volta nas telas de um jogo (menos em itens com valor) */
++   if (     (!cbs->setting || cbs->setting->type == ST_ACTION)
++         && (   string_is_equal(menu_label,
++                  msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_RPL_ENTRY_ACTIONS))
++             || string_is_equal(menu_label,
++                  msg_hash_to_str(MENU_ENUM_LABEL_STV_CONTENT_OPTIONS))
++             || string_is_equal(menu_label,
++                  msg_hash_to_str(MENU_ENUM_LABEL_INFORMATION))
++             || string_is_equal(menu_label,
++                  msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_CORE_LIST_SET))))
++   {
++      BIND_ACTION_LEFT(cbs, action_left_stv_back);
++      return 0;
++   }
++
+    if (type == MENU_SETTING_NO_ITEM)
+    {
+       if (

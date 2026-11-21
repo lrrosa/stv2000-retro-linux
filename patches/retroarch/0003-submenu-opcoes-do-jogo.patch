@@ -1,0 +1,403 @@
+diff --git a/intl/msg_hash_lbl.h b/intl/msg_hash_lbl.h
+index d27a77d..1d1ca72 100644
+--- a/intl/msg_hash_lbl.h
++++ b/intl/msg_hash_lbl.h
+@@ -5264,6 +5264,10 @@ MSG_HASH(
+    MENU_ENUM_LABEL_RENAME_ENTRY,
+    "rename_entry"
+    )
++MSG_HASH(
++   MENU_ENUM_LABEL_STV_CONTENT_OPTIONS,
++   "stv_content_options"
++   )
+ MSG_HASH(
+    MENU_ENUM_LABEL_MENU_SHOW_LOAD_CORE,
+    "menu_show_load_core"
+diff --git a/intl/msg_hash_pt_br.h b/intl/msg_hash_pt_br.h
+index c96f691..687c155 100644
+--- a/intl/msg_hash_pt_br.h
++++ b/intl/msg_hash_pt_br.h
+@@ -8974,6 +8974,14 @@ MSG_HASH(
+    MENU_ENUM_SUBLABEL_RENAME_ENTRY,
+    "Renomeia o título do item."
+    )
++MSG_HASH(
++   MENU_ENUM_LABEL_VALUE_STV_CONTENT_OPTIONS,
++   "Opções"
++   )
++MSG_HASH(
++   MENU_ENUM_SUBLABEL_STV_CONTENT_OPTIONS,
++   "Renomear, remover ou trocar o núcleo deste jogo."
++   )
+ MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_DELETE_ENTRY,
+    "Remover"
+diff --git a/intl/msg_hash_us.h b/intl/msg_hash_us.h
+index d63ccc8..6daeb06 100644
+--- a/intl/msg_hash_us.h
++++ b/intl/msg_hash_us.h
+@@ -9134,6 +9134,14 @@ MSG_HASH(
+    MENU_ENUM_SUBLABEL_RENAME_ENTRY,
+    "Rename the title of the entry."
+    )
++MSG_HASH(
++   MENU_ENUM_LABEL_VALUE_STV_CONTENT_OPTIONS,
++   "Options"
++   )
++MSG_HASH(
++   MENU_ENUM_SUBLABEL_STV_CONTENT_OPTIONS,
++   "Rename, remove or change the core of this entry."
++   )
+ MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_DELETE_ENTRY,
+    "Remove"
+diff --git a/menu/cbs/menu_cbs_deferred_push.c b/menu/cbs/menu_cbs_deferred_push.c
+index dfd7765..5e31dc8 100644
+--- a/menu/cbs/menu_cbs_deferred_push.c
++++ b/menu/cbs/menu_cbs_deferred_push.c
+@@ -250,6 +250,7 @@ GENERIC_DEFERRED_PUSH(deferred_push_accounts_facebook_list,         DISPLAYLIST_
+ GENERIC_DEFERRED_PUSH(deferred_push_help,                           DISPLAYLIST_HELP_SCREEN_LIST)
+ GENERIC_DEFERRED_PUSH(deferred_push_rdb_entry_detail,               DISPLAYLIST_DATABASE_ENTRY)
+ GENERIC_DEFERRED_PUSH(deferred_push_rpl_entry_actions,              DISPLAYLIST_HORIZONTAL_CONTENT_ACTIONS)
++GENERIC_DEFERRED_PUSH(deferred_push_stv_content_options,           DISPLAYLIST_STV_CONTENT_OPTIONS)
+ GENERIC_DEFERRED_PUSH(deferred_push_core_list_deferred,             DISPLAYLIST_CORES_SUPPORTED)
+ GENERIC_DEFERRED_PUSH(deferred_push_core_collection_list_deferred,  DISPLAYLIST_CORES_COLLECTION_SUPPORTED)
+ GENERIC_DEFERRED_PUSH(deferred_push_menu_sounds_list,               DISPLAYLIST_MENU_SOUNDS_LIST)
+@@ -784,6 +785,7 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
+       {MENU_ENUM_LABEL_DISC_INFORMATION, deferred_push_disc_information},
+       {MENU_ENUM_LABEL_SYSTEM_INFORMATION, deferred_push_system_information},
+       {MENU_ENUM_LABEL_DEFERRED_RPL_ENTRY_ACTIONS, deferred_push_rpl_entry_actions},
++      {MENU_ENUM_LABEL_STV_CONTENT_OPTIONS, deferred_push_stv_content_options},
+       {MENU_ENUM_LABEL_DEFERRED_NETPLAY, deferred_push_netplay_sublist},
+       {MENU_ENUM_LABEL_DEFERRED_DRIVER_SETTINGS_LIST, deferred_push_driver_settings_list},
+       {MENU_ENUM_LABEL_DEFERRED_VIDEO_SETTINGS_LIST, deferred_push_video_settings_list},
+@@ -1060,6 +1062,9 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
+          case MENU_ENUM_LABEL_RGUI_MENU_THEME_PRESET:
+             BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_rgui_theme_preset);
+             break;
++         case MENU_ENUM_LABEL_STV_CONTENT_OPTIONS:
++            BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_stv_content_options);
++            break;
+          case MENU_ENUM_LABEL_SHADER_OPTIONS:
+             BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_shader_options);
+             break;
+diff --git a/menu/cbs/menu_cbs_ok.c b/menu/cbs/menu_cbs_ok.c
+index 5283b05..2b38392 100644
+--- a/menu/cbs/menu_cbs_ok.c
++++ b/menu/cbs/menu_cbs_ok.c
+@@ -6453,6 +6453,14 @@ static int action_ok_delete_entry(const char *path,
+    }
+ 
+    new_selection_ptr      = menu_st->selection_ptr;
++   /* STV-2000: vindo do submenu "Opções", volta direto para a lista de jogos */
++   {
++      const char *stack_label = NULL;
++      menu_entries_get_last_stack(NULL, &stack_label, NULL, NULL, NULL);
++      if (string_is_equal(stack_label,
++               msg_hash_to_str(MENU_ENUM_LABEL_STV_CONTENT_OPTIONS)))
++         menu_entries_pop_stack(&new_selection_ptr, 0, 0);
++   }
+    menu_entries_pop_stack(&new_selection_ptr, 0, 1);
+    menu_st->selection_ptr = new_selection_ptr;
+ 
+@@ -9138,6 +9146,7 @@ static int menu_cbs_init_bind_ok_compare_label(menu_file_list_cbs_t *cbs,
+          {MENU_ENUM_LABEL_RESTART_CONTENT,                     action_ok_restart_content},
+          {MENU_ENUM_LABEL_TAKE_SCREENSHOT,                     action_ok_screenshot},
+          {MENU_ENUM_LABEL_RENAME_ENTRY,                        action_ok_rename_entry},
++         {MENU_ENUM_LABEL_STV_CONTENT_OPTIONS,                 action_ok_push_default},
+          {MENU_ENUM_LABEL_DELETE_ENTRY,                        action_ok_delete_entry},
+          {MENU_ENUM_LABEL_MENU_DISABLE_KIOSK_MODE,             action_ok_disable_kiosk_mode},
+          {MENU_ENUM_LABEL_XMB_MAIN_MENU_ENABLE_SETTINGS,       action_ok_enable_settings},
+diff --git a/menu/cbs/menu_cbs_sublabel.c b/menu/cbs/menu_cbs_sublabel.c
+index 57fa8db..e4cfd5b 100644
+--- a/menu/cbs/menu_cbs_sublabel.c
++++ b/menu/cbs/menu_cbs_sublabel.c
+@@ -1013,6 +1013,7 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_updater_auto_backup_history_siz
+ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_netplay_refresh_rooms,                 MENU_ENUM_SUBLABEL_NETPLAY_REFRESH_ROOMS)
+ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_netplay_refresh_lan,                   MENU_ENUM_SUBLABEL_NETPLAY_REFRESH_LAN)
+ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_rename_entry,                          MENU_ENUM_SUBLABEL_RENAME_ENTRY)
++DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_stv_content_options,                  MENU_ENUM_SUBLABEL_STV_CONTENT_OPTIONS)
+ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_delete_entry,                          MENU_ENUM_SUBLABEL_DELETE_ENTRY)
+ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_information,                           MENU_ENUM_SUBLABEL_INFORMATION)
+ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_run,                                   MENU_ENUM_SUBLABEL_RUN)
+@@ -3668,6 +3669,9 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
+          case MENU_ENUM_LABEL_INFORMATION:
+             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_information);
+             break;
++         case MENU_ENUM_LABEL_STV_CONTENT_OPTIONS:
++            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_stv_content_options);
++            break;
+          case MENU_ENUM_LABEL_RENAME_ENTRY:
+             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_rename_entry);
+             break;
+diff --git a/menu/cbs/menu_cbs_title.c b/menu/cbs/menu_cbs_title.c
+index 8ecd9f1..07686e7 100644
+--- a/menu/cbs/menu_cbs_title.c
++++ b/menu/cbs/menu_cbs_title.c
+@@ -611,6 +611,7 @@ DEFAULT_TITLE_MACRO(action_get_input_remapping_options_list,    MENU_ENUM_LABEL_
+ DEFAULT_TITLE_MACRO(action_get_remap_file_manager_list,         MENU_ENUM_LABEL_VALUE_REMAP_FILE_MANAGER_LIST)
+ DEFAULT_TITLE_MACRO(action_get_shader_options_list,             MENU_ENUM_LABEL_VALUE_SHADER_OPTIONS)
+ DEFAULT_TITLE_MACRO(action_get_disk_options_list,               MENU_ENUM_LABEL_VALUE_DISK_OPTIONS)
++DEFAULT_TITLE_MACRO(action_get_stv_content_options_list,        MENU_ENUM_LABEL_VALUE_STV_CONTENT_OPTIONS)
+ DEFAULT_TITLE_MACRO(action_get_frontend_counters_list,          MENU_ENUM_LABEL_VALUE_FRONTEND_COUNTERS)
+ DEFAULT_TITLE_MACRO(action_get_core_counters_list,              MENU_ENUM_LABEL_VALUE_CORE_COUNTERS)
+ DEFAULT_TITLE_MACRO(action_get_recording_settings_list,         MENU_ENUM_LABEL_VALUE_RECORDING_SETTINGS)
+@@ -1231,6 +1232,8 @@ static int menu_cbs_init_bind_title_compare_label(menu_file_list_cbs_t *cbs,
+          action_get_core_cheat_options_list},
+       {MENU_ENUM_LABEL_SHADER_OPTIONS,
+          action_get_shader_options_list},
++      {MENU_ENUM_LABEL_STV_CONTENT_OPTIONS,
++         action_get_stv_content_options_list},
+       {MENU_ENUM_LABEL_DISK_OPTIONS,
+          action_get_disk_options_list},
+       {MENU_ENUM_LABEL_FRONTEND_COUNTERS,
+@@ -1580,6 +1583,9 @@ static int menu_cbs_init_bind_title_compare_label(menu_file_list_cbs_t *cbs,
+          case MENU_ENUM_LABEL_SHADER_OPTIONS:
+             BIND_ACTION_GET_TITLE(cbs, action_get_shader_options_list);
+             break;
++         case MENU_ENUM_LABEL_STV_CONTENT_OPTIONS:
++            BIND_ACTION_GET_TITLE(cbs, action_get_stv_content_options_list);
++            break;
+          case MENU_ENUM_LABEL_DISK_OPTIONS:
+             BIND_ACTION_GET_TITLE(cbs, action_get_disk_options_list);
+             break;
+diff --git a/menu/drivers/xmb.c b/menu/drivers/xmb.c
+index 8630bab..8435418 100644
+--- a/menu/drivers/xmb.c
++++ b/menu/drivers/xmb.c
+@@ -3434,6 +3434,8 @@ static uintptr_t xmb_icon_get_id(xmb_handle_t *xmb,
+          if (xmb->depth < 3)
+             return xmb->textures.list[XMB_TEXTURE_RELOAD];
+          break;
++      case MENU_ENUM_LABEL_STV_CONTENT_OPTIONS:
++         return xmb->textures.list[XMB_TEXTURE_SETTING];
+       case MENU_ENUM_LABEL_RENAME_ENTRY:
+          return xmb->textures.list[XMB_TEXTURE_RENAME];
+       case MENU_ENUM_LABEL_RESUME_CONTENT:
+diff --git a/menu/menu_displaylist.c b/menu/menu_displaylist.c
+index 4ad7bac..94c5d9f 100644
+--- a/menu/menu_displaylist.c
++++ b/menu/menu_displaylist.c
+@@ -4043,8 +4043,13 @@ static int menu_displaylist_parse_load_content_settings(
+    return count;
+ }
+ 
++/* STV-2000: a lista de um jogo mostra só Executar, Adicionar aos favoritos,
++ * Informações e "Opções". As ações que mexem na lista (Renomear, Remover,
++ * Definir/Redefinir núcleo...) ficam no submenu "Opções" (stv_options = true),
++ * para o jogo não ser removido sem querer. */
+ static int menu_displaylist_parse_horizontal_content_actions(
+-      menu_handle_t *menu, settings_t *settings, file_list_t *list)
++      menu_handle_t *menu, settings_t *settings, file_list_t *list,
++      bool stv_options)
+ {
+    bool content_loaded                 = false;
+    playlist_t *playlist                = playlist_get_cached();
+@@ -4059,7 +4064,7 @@ static int menu_displaylist_parse_horizontal_content_actions(
+    content_loaded = !retroarch_ctl(RARCH_CTL_IS_DUMMY_CORE, NULL)
+          && string_is_equal(menu->deferred_path, fullpath);
+ 
+-   if (content_loaded)
++   if (content_loaded && !stv_options)
+    {
+       if (menu_displaylist_parse_load_content_settings(list,
+                settings, true) == 0)
+@@ -4073,37 +4078,75 @@ static int menu_displaylist_parse_horizontal_content_actions(
+    {
+       const char *playlist_path = NULL;
+       const char *playlist_file = NULL;
+-#ifdef HAVE_AUDIOMIXER
+-      const char *ext           = NULL;
+ 
+-      if (entry && !string_is_empty(entry->path))
+-         ext = path_get_extension(entry->path);
++      playlist_path = playlist_get_conf_path(playlist);
++      if (!string_is_empty(playlist_path))
++         playlist_file = path_basename_nocompression(playlist_path);
+ 
+-      if (    !string_is_empty(ext)
+-            && audio_driver_mixer_extension_supported(ext))
++      if (!stv_options)
+       {
+-         menu_entries_append(list,
+-               msg_hash_to_str(MENU_ENUM_LABEL_VALUE_ADD_TO_MIXER),
+-               msg_hash_to_str(MENU_ENUM_LABEL_ADD_TO_MIXER),
+-               MENU_ENUM_LABEL_ADD_TO_MIXER,
+-               FILE_TYPE_PLAYLIST_ENTRY, 0, idx, NULL);
++#ifdef HAVE_AUDIOMIXER
++         const char *ext           = NULL;
+ 
+-         menu_entries_append(list,
+-               msg_hash_to_str(MENU_ENUM_LABEL_VALUE_ADD_TO_MIXER_AND_PLAY),
+-               msg_hash_to_str(MENU_ENUM_LABEL_ADD_TO_MIXER_AND_PLAY),
+-               MENU_ENUM_LABEL_ADD_TO_MIXER_AND_PLAY,
+-               FILE_TYPE_PLAYLIST_ENTRY, 0, idx, NULL);
+-      }
++         if (entry && !string_is_empty(entry->path))
++            ext = path_get_extension(entry->path);
++
++         if (    !string_is_empty(ext)
++               && audio_driver_mixer_extension_supported(ext))
++         {
++            menu_entries_append(list,
++                  msg_hash_to_str(MENU_ENUM_LABEL_VALUE_ADD_TO_MIXER),
++                  msg_hash_to_str(MENU_ENUM_LABEL_ADD_TO_MIXER),
++                  MENU_ENUM_LABEL_ADD_TO_MIXER,
++                  FILE_TYPE_PLAYLIST_ENTRY, 0, idx, NULL);
++
++            menu_entries_append(list,
++                  msg_hash_to_str(MENU_ENUM_LABEL_VALUE_ADD_TO_MIXER_AND_PLAY),
++                  msg_hash_to_str(MENU_ENUM_LABEL_ADD_TO_MIXER_AND_PLAY),
++                  MENU_ENUM_LABEL_ADD_TO_MIXER_AND_PLAY,
++                  FILE_TYPE_PLAYLIST_ENTRY, 0, idx, NULL);
++         }
+ #endif
+-      playlist_path = playlist_get_conf_path(playlist);
+-      if (!string_is_empty(playlist_path))
+-         playlist_file = path_basename_nocompression(playlist_path);
++         menu_entries_append(list,
++               msg_hash_to_str(MENU_ENUM_LABEL_VALUE_RUN),
++               msg_hash_to_str(MENU_ENUM_LABEL_RUN),
++               MENU_ENUM_LABEL_RUN, FILE_TYPE_PLAYLIST_ENTRY, 0, idx, NULL);
+ 
+-      menu_entries_append(list,
+-            msg_hash_to_str(MENU_ENUM_LABEL_VALUE_RUN),
+-            msg_hash_to_str(MENU_ENUM_LABEL_RUN),
+-            MENU_ENUM_LABEL_RUN, FILE_TYPE_PLAYLIST_ENTRY, 0, idx, NULL);
++         /* Skip 'Add to Favourites' if we are currently
++          * viewing an entry of the favourites playlist */
++         if (
++                  settings->bools.quick_menu_show_add_to_favorites
++               && settings->bools.menu_content_show_favorites
++               && !(!string_is_empty(playlist_file)
++               && string_is_equal(playlist_file, FILE_PATH_CONTENT_FAVORITES))
++            )
++         {
++            menu_entries_append(list,
++                  msg_hash_to_str(MENU_ENUM_LABEL_VALUE_ADD_TO_FAVORITES_PLAYLIST),
++                  msg_hash_to_str(MENU_ENUM_LABEL_ADD_TO_FAVORITES_PLAYLIST),
++                  MENU_ENUM_LABEL_ADD_TO_FAVORITES_PLAYLIST,
++                  FILE_TYPE_PLAYLIST_ENTRY, 0, 0, NULL);
++         }
++
++         if (settings->bools.quick_menu_show_information)
++            menu_entries_append(list,
++                  msg_hash_to_str(MENU_ENUM_LABEL_VALUE_INFORMATION),
++                  msg_hash_to_str(MENU_ENUM_LABEL_INFORMATION),
++                  MENU_ENUM_LABEL_INFORMATION, MENU_SETTING_ACTION, 0, 0, NULL);
++
++         /* "Opções" por último, longe do cursor */
++         if (    !settings->bools.kiosk_mode_enable
++               || settings->bools.quick_menu_show_add_to_playlist)
++            menu_entries_append(list,
++                  msg_hash_to_str(MENU_ENUM_LABEL_VALUE_STV_CONTENT_OPTIONS),
++                  msg_hash_to_str(MENU_ENUM_LABEL_STV_CONTENT_OPTIONS),
++                  MENU_ENUM_LABEL_STV_CONTENT_OPTIONS,
++                  MENU_SETTING_ACTION, 0, 0, NULL);
+ 
++         return 0;
++      }
++
++      /* Submenu "Opções" */
+       if (!settings->bools.kiosk_mode_enable)
+       {
+          bool remove_entry_enabled = false;
+@@ -4143,14 +4186,16 @@ static int menu_displaylist_parse_horizontal_content_actions(
+                break;
+          }
+ 
+-         /* Remove 'Remove' from Explore lists for now since it does not work correctly */
++         /* Remove 'Remove' from Explore lists for now since it does not work correctly.
++          * STV-2000: o topo da pilha é a entrada "Opções"; a lista do jogo
++          * (cujo tipo diz se veio do Explore) está logo abaixo. */
+          if (remove_entry_enabled)
+          {
+             menu_list_t *menu_list      = menu_st->entries.list;
+             file_list_t *menu_stack     = MENU_LIST_GET(menu_list, 0);
+             struct item_file *stack_top = menu_stack->list;
+             size_t depth                = menu_stack->size;
+-            unsigned current_type       = (depth > 0 ? stack_top[depth - 1].type : 0);
++            unsigned current_type       = (depth > 1 ? stack_top[depth - 2].type : 0);
+ 
+             if (current_type)
+                remove_entry_enabled = false;
+@@ -4164,22 +4209,6 @@ static int menu_displaylist_parse_horizontal_content_actions(
+                   MENU_SETTING_ACTION_DELETE_ENTRY, 0, 0, NULL);
+       }
+ 
+-      /* Skip 'Add to Favourites' if we are currently
+-       * viewing an entry of the favourites playlist */
+-      if (
+-               settings->bools.quick_menu_show_add_to_favorites
+-            && settings->bools.menu_content_show_favorites
+-            && !(!string_is_empty(playlist_file)
+-            && string_is_equal(playlist_file, FILE_PATH_CONTENT_FAVORITES))
+-         )
+-      {
+-         menu_entries_append(list,
+-               msg_hash_to_str(MENU_ENUM_LABEL_VALUE_ADD_TO_FAVORITES_PLAYLIST),
+-               msg_hash_to_str(MENU_ENUM_LABEL_ADD_TO_FAVORITES_PLAYLIST),
+-               MENU_ENUM_LABEL_ADD_TO_FAVORITES_PLAYLIST,
+-               FILE_TYPE_PLAYLIST_ENTRY, 0, 0, NULL);
+-      }
+-
+       if (settings->bools.quick_menu_show_add_to_playlist)
+       {
+          menu_entries_append(list,
+@@ -4235,12 +4264,6 @@ static int menu_displaylist_parse_horizontal_content_actions(
+          }
+ #endif
+       }
+-
+-      if (settings->bools.quick_menu_show_information)
+-         menu_entries_append(list,
+-               msg_hash_to_str(MENU_ENUM_LABEL_VALUE_INFORMATION),
+-               msg_hash_to_str(MENU_ENUM_LABEL_INFORMATION),
+-               MENU_ENUM_LABEL_INFORMATION, MENU_SETTING_ACTION, 0, 0, NULL);
+    }
+ 
+    return 0;
+@@ -14840,9 +14863,18 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
+                                |  MD_FLAG_NEED_PUSH;
+             break;
+          case DISPLAYLIST_HORIZONTAL_CONTENT_ACTIONS:
++         case DISPLAYLIST_STV_CONTENT_OPTIONS:
+             menu_entries_clear(info->list);
+             ret = menu_displaylist_parse_horizontal_content_actions(menu,
+-                  settings, info->list);
++                  settings, info->list,
++                  type == DISPLAYLIST_STV_CONTENT_OPTIONS);
++            if (     type == DISPLAYLIST_STV_CONTENT_OPTIONS
++                  && info->list->size == 0)
++               menu_entries_append(info->list,
++                     msg_hash_to_str(MENU_ENUM_LABEL_VALUE_NO_ITEMS),
++                     msg_hash_to_str(MENU_ENUM_LABEL_NO_ITEMS),
++                     MENU_ENUM_LABEL_NO_ITEMS,
++                     MENU_SETTING_NO_ITEM, 0, 0, NULL);
+             info->flags       |=  MD_FLAG_NEED_REFRESH
+                                |  MD_FLAG_NEED_PUSH;
+             break;
+diff --git a/menu/menu_displaylist.h b/menu/menu_displaylist.h
+index 90192b2..b7c073e 100644
+--- a/menu/menu_displaylist.h
++++ b/menu/menu_displaylist.h
+@@ -96,6 +96,7 @@ enum menu_displaylist_ctl_state
+    DISPLAYLIST_SETTINGS_ALL,
+    DISPLAYLIST_HORIZONTAL,
+    DISPLAYLIST_HORIZONTAL_CONTENT_ACTIONS,
++   DISPLAYLIST_STV_CONTENT_OPTIONS, /* STV-2000: submenu "Opções" do jogo */
+    DISPLAYLIST_HISTORY,
+    DISPLAYLIST_EXPLORE,
+    DISPLAYLIST_CONTENTLESS_CORES,
+diff --git a/msg_hash.h b/msg_hash.h
+index 25a1423..c8b296d 100644
+--- a/msg_hash.h
++++ b/msg_hash.h
+@@ -3418,6 +3418,7 @@ enum msg_hash_enums
+ 
+    MENU_LABEL(DELETE_ENTRY),
+    MENU_LABEL(RENAME_ENTRY),
++   MENU_LABEL(STV_CONTENT_OPTIONS), /* STV-2000: submenu "Opções" do jogo */
+ 
+    MENU_LABEL(TAKE_SCREENSHOT),
+ 

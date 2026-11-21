@@ -124,6 +124,12 @@ $ruim"
     log "Template da partição JOGOS"
     bash "$PROJ/scripts/gen-jogos-template.sh" "$TARGET/usr/share/stv2000/systems.conf" "$TARGET/usr/share/stv2000/jogos-template"
 
+    log "Nomes oficiais por CRC (base do libretro, para o stv-playlists)"
+    rm -rf "$TARGET/usr/share/stv2000/nomes"
+    python3 "$PROJ/scripts/gen-nomes-crc.py" "$TARGET/usr/share/libretro/database/rdb" \
+        "$TARGET/usr/share/stv2000/systems.conf" "$TARGET/usr/share/stv2000/nomes" \
+        || die "falha ao gerar os índices de nomes"
+
     log "Interface: fundos por sistema e limpeza dos assets"
     local A="$TARGET/usr/share/libretro/assets" es="emulationstation blured/1280x720"
     local F="$TARGET/usr/share/stv2000/fundos" db img

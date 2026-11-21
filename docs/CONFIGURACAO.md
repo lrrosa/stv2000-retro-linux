@@ -10,7 +10,7 @@ português. Tudo se faz com o controle:
 | ← → | troca de aba: Menu principal, Configurações, Histórico, Favoritos e um sistema por aba |
 | ↑ ↓ | escolhe o jogo (segure para andar rápido; L/R pulam por letra) |
 | botão de **baixo** (B no SNES, A no Xbox, ✕ no PlayStation) | abre / confirma: no jogo, escolha **Executar** |
-| botão da **direita** (A no SNES, B no Xbox, ○ no PlayStation) | volta |
+| botão da **direita** (A no SNES, B no Xbox, ○ no PlayStation) | volta (dentro de um jogo, o **←** também volta) |
 | **Select + Start** | durante o jogo: **sai do jogo** e volta à lista |
 | **segurar Start** (2 s) | durante o jogo: menu rápido (salvar/carregar estado, trocar disco) |
 
@@ -18,6 +18,9 @@ Prefere confirmar com o botão da direita, como no SNES? A troca fica em *Config
 Entrada*, nos controles do menu (trocar os botões OK e Cancelar).
 
 - **Favoritos**: abra o jogo na lista e escolha *Adicionar aos favoritos*.
+- **Opções do jogo**: ao abrir um jogo aparecem só *Executar*, *Adicionar aos favoritos*,
+  *Informações* e, por último, *Opções*. Renomear, remover da lista e trocar o núcleo
+  ficam dentro de *Opções*, para não remover um jogo sem querer.
 - **Histórico**: os últimos 50 jogos abertos, com o tempo jogado.
 - **Visual**: ícones coloridos (tema *Retrosystem*) e fundos com tema de jogos: em cada
   sistema, a tela de um jogo dele desfocada; nas outras abas, um degradê com silhuetas de
@@ -25,16 +28,25 @@ Entrada*, nos controles do menu (trocar os botões OK e Cancelar).
   ícones, tema de cores, opacidade do fundo).
 - **Nomes**: aparecem sem as etiquetas de versão. Por exemplo,
   `Sonic The Hedgehog (USA, Europe) (Rev 1).md` vira *Sonic The Hedgehog (USA, Europe)*.
+  Nos sistemas de cartucho, o aparelho reconhece cada ROM pelo CRC na base de dados do
+  libretro e usa o **nome oficial**, seja qual for o nome do arquivo:
+  `Sonic The Hedgehog 2 (W) (REV01) [!].gen` aparece como *Sonic The Hedgehog 2 (World)*.
+  Jogos recém-copiados aparecem primeiro com o nome do arquivo e ganham o nome oficial
+  alguns segundos depois (cada ROM é lida uma vez só).
 
 ### Capas (thumbnails)
 
-Com o **cabo de rede** ligado, a capa e a tela-título de cada jogo são baixadas
-automaticamente do servidor do libretro na primeira vez que você passa pelo jogo na
-lista. Elas ficam salvas em `JOGOS\thumbnails` e depois funcionam sem rede. Para baixar
-todas de uma vez: *Menu principal → Atualizador on-line → Atualizar miniaturas das listas*.
+Com **rede** (cabo ou Wi-Fi), a capa e a tela-título de cada jogo são baixadas
+automaticamente na primeira vez que você passa pelo jogo na lista: do servidor do
+libretro ou, se ele estiver fora do ar ou não tiver a imagem, do espelho
+[libretro-thumbnails](https://github.com/libretro-thumbnails) no GitHub. Elas ficam salvas
+em `JOGOS\thumbnails` e depois funcionam sem rede. Para baixar todas de uma vez:
+*Menu principal → Atualizador on-line → Atualizar miniaturas das listas*.
 
-A capa é encontrada pelo **nome do arquivo**, que precisa seguir a nomenclatura No-Intro/
-Redump, a usada pela maioria dos sets (ex.: `Super Mario World (USA).sfc`). Para usar
+A capa é encontrada pelo **nome do jogo na lista**. Nos sistemas de cartucho é o nome
+oficial reconhecido pelo CRC (veja *Nomes* acima), então funciona com qualquer nome de
+arquivo. Em CD (PlayStation, Mega-CD) e arcade, o nome do arquivo precisa seguir a
+nomenclatura No-Intro/Redump (ex.: `Final Fantasy VII (USA) (Disc 1).chd`). Para usar
 uma imagem sua, salve como PNG em
 `JOGOS\thumbnails\<nome do sistema>\Named_Boxarts\<nome do jogo>.png`. O nome do sistema é
 o da aba, por exemplo `Nintendo - Super Nintendo Entertainment System`. Os caracteres
@@ -94,7 +106,7 @@ Copie para `JOGOS\bios\` com o nome exato:
 - **Segurar Start por 2 segundos** abre o menu do RetroArch durante o jogo
   (salvar/carregar estado, trocar disco, opções do emulador).
 - Cada sistema abre direto no emulador padrão (tabela `systems.conf`). Para usar outro
-  num jogo: abra o jogo na lista → *Definir núcleo*.
+  num jogo: abra o jogo na lista → *Opções* → *Definir núcleo*.
 - Para remapear: *Configurações → Entrada → Controles da porta 1*.
 - As configurações mais técnicas ficam escondidas. Para vê-las: *Configurações →
   Interface do usuário → Mostrar configurações avançadas*.

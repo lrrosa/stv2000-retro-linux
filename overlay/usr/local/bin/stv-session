@@ -36,14 +36,47 @@ atualizar_listas() {
     done
 }
 
+# Espera Enter no teclado ou qualquer botão de um controle (/dev/input/js*).
+# $1 = limite em segundos (vazio = sem limite).
+esperar_tecla() {
+    sinal=/tmp/stv-botao.$$
+    rm -f "$sinal"
+    grupos=""
+    for js in /dev/input/js*; do
+        [ -r "$js" ] || continue
+        # um leitor por controle, cada um no seu grupo de processos (setsid) para
+        # o kill no fim levar junto o dd parado à espera do próximo evento.
+        # Evento = 8 bytes: tempo(4) valor(2) tipo(1) número(1); tipo 1 = botão
+        # (os eventos iniciais, ao abrir o controle, vêm com tipo 129 e são ignorados)
+        setsid sh -c '
+            sinal=$1
+            exec < "$2"
+            while ev=$(dd bs=8 count=1 2>/dev/null | od -An -tu1) && [ -n "$ev" ]; do
+                set -- $ev
+                if [ "$7" = 1 ] && [ "$5" = 1 ]; then : > "$sinal"; exit 0; fi
+            done' _ "$sinal" "$js" &
+        grupos="$grupos $!"
+    done
+    t=0
+    while [ -z "$1" ] || [ "$t" -lt "$1" ]; do
+        read -rs -t 1 _ && break
+        [ -e "$sinal" ] && break
+        t=$((t + 1))
+    done
+    # o pid antes do grupo: se o leitor ainda não chegou ao setsid, o grupo não existe
+    for g in $grupos; do kill "$g" 2>/dev/null; kill -- "-$g" 2>/dev/null; done
+    rm -f "$sinal"
+}
+
 falhas=0
 while :; do
     rm -f /tmp/stv-reiniciar /tmp/stv-recarregar
     stv-tela iniciando
-    /usr/local/bin/stv-playlists > "$HOME/.cache/playlists.log" 2>&1
+    # -r: sem ler CRCs novos, para o menu abrir logo (o atualizar_listas lê depois)
+    /usr/local/bin/stv-playlists -r > "$HOME/.cache/playlists.log" 2>&1
     if [ "$falhas" -eq 0 ] && ! ls "$PL"/*.lpl >/dev/null 2>&1; then
         stv-tela sem-jogos
-        read -rs -t 20 _ || true   # Enter no teclado pula a espera
+        esperar_tecla 20   # Enter ou um botão do controle pula a espera
     fi
     /etc/local.d/20-audio.start >/dev/null 2>&1   # a placa de som pode subir depois do boot
     vazio=0; ls "$PL"/*.lpl >/dev/null 2>&1 || vazio=1
@@ -75,8 +108,9 @@ while :; do
         echo "Últimas linhas de $LOG:"
         tail -n 15 "$LOG"
         echo
-        echo "Enter = tentar de novo.  (Ou acesse por SSH: ssh $(id -un)@$(hostname))"
-        read -r _
+        echo "Qualquer botão do controle (ou Enter) = tentar de novo."
+        echo "(Ou acesse por SSH: ssh $(id -un)@$(hostname))"
+        esperar_tecla
         falhas=0
         printf '\033[?25l'
     else
